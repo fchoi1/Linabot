@@ -1,0 +1,9 @@
+<launch>
+
+  <node name="throttle_tf" pkg="topic_tools" type="throttle" args="messages tf 30.0 tf_throttled" />
+  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 1 0 0 0 0 world my_frame 100" />
+  <node name="rosjs" pkg="rosjs" type="rosjs.py" respawn="false" output="screen" />
+
+  <node name="visualization_marker_tutorials" pkg="visualization_marker_tutorials" type="points_and_lines" />
+
+</launch>

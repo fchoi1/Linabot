@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="ros_socket" name="ros_socket_node" type="ros_socket_node.py" output="screen">       
+  </node>
+</launch>

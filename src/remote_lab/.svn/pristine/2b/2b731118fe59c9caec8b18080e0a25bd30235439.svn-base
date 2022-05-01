@@ -1,0 +1,42 @@
+
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Video Test</title> 
+
+<script type="text/javascript" src="resources/jquery.min.js"></script>
+<script type="text/javascript" src="resources/json2.js"></script>
+<script type="text/javascript" src="resources/ros.js"></script>
+<script type="text/javascript" src="resources/spidergl.js"> </script> 
+<script type="text/javascript" src="js/ros/ros.js"> </script> 
+
+<script> 
+var node = new ros.NodeHandle("ws://rtc.pr2-remotelab.com:8080");
+
+function start()
+{
+  var video0 = new ros.widgets.VideoWidget(node,"VIDEO_CANVAS_0","/remote_lab_cam0/image_raw");
+  
+  function nop() {};
+  function json(obj) {return JSON.stringify(obj);};
+  
+  function log(msg) {
+    $('#log').append(msg.toString() + '<br>');
+  };
+  
+}
+
+</script> 
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+</head> 
+
+<body onload="start()"> 
+<canvas id="VIDEO_CANVAS_0" width="640" height="480"></canvas>
+</body> 
+ 
+</html> 

@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtm\
+l11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="language" content="en" />
+<title>Turtlebot Web Interface</title>
+<link rel="stylesheet" type="text/css"	href="css/layout-default-latest.css" />
+
+<!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+<link rel="stylesheet" type="text/css" href="simple_style.css" />
+
+<script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+
+<script type="text/javascript" src="js/ros/ros.js"></script>
+<script type="text/javascript" src="js/ros/common.js"></script>
+<script type="text/javascript" src="js/ros/visualization/visualization.js"></script>
+<script type="text/javascript" src="js/spidergl/spidergl.js"></script>
+<script type="text/javascript" src="js/ros/binaryparser/binaryparser.js"></script>
+<script type="text/javascript" src="js/ros/b64codec/b64codec.js"></script>
+<script type="text/javascript">
+	// rosjs variables
+	rosjs_server = "172.16.17.214";
+	mjpeg_server = "172.16.17.214";
+
+	function start() {
+		console.log("in start");
+		console.log("ws://" + rosjs_server + ":9090");
+		var rosNode = new ros.NodeHandle("ws://" + rosjs_server + ":9090");
+
+		rosNode.setOnClose(function(e) {
+			console.log("Disconncted or Can't Connect.");
+		});
+
+		rosNode.setOnError(function(e) {
+			console.log("Unknown error!");
+		});
+
+		rosNode.setOnOpen(function(e) {
+			console.log("Connected to " + rosNode.url + ".");
+
+			create_visualizations(rosNode);
+		});
+
+	}
+
+	function create_visualizations(rosNode) {
+		//initialize webgl canvas and ros tf 
+		var tf = new ros.tf.TransformListener(rosNode, "/tf");
+		var vm = new ros.visualization.VisualizationManager("WEBGL_CANVAS");
+		vm.initialize(rosNode, tf);
+
+		vm.scene_viewer.fixed_frame = "/odom";
+
+		vm.scene_viewer.clear_color = [ .639, .7804, .851, 1 ];
+
+		vm.addGrid("/odom", 10.0, 1.0);
+
+		var robot_model = vm.addRobotModel("resources/turtlebot_description/turtlebot_urdf.xml");
+
+		var scene_node = vm.addPointCloud2('/pclrgb', '/camera_rgb_optical_frame');
+		
+		vm.addInteractiveMarker("/turtlebot_marker_server/update");
+
+		createVideoWidget("video1", "/camera/rgb/image_color");
+
+	}
+
+	function createVideoWidget(div_id, topic) {
+		var video_width = 340;
+		var video_height = 245;
+		var video_quality = 70;
+		var video_update_interval = 100;
+		var img_url = "http://" + mjpeg_server + ":8080/stream?topic=" + topic
+				+ "?width=" + video_width + "?height=" + video_height
+				+ "?quality=" + video_quality;
+		var text = "<img id=\"" + div_id+ "img\" src=\""+ img_url+"\" alt=\"\">";
+		$('#' + div_id).html(text);
+	}
+</script>
+</head>
+<body onload="start()">
+
+	<style>
+#feedback {
+	font-size: 1.5em;
+}
+
+#selectable .ui-selecting {
+	background: #FECA40;
+}
+
+#selectable .ui-selected {
+	background: #F39814;
+	color: white;
+}
+
+#selectable {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	width: 60%;
+}
+
+#selectable li {
+	margin: 3px;
+	padding: 0.4em;
+	font-size: 1.2em;
+	height: 18px;
+}
+</style>
+
+	<div id="rap">
+		<div id="header">
+			Turtlebot Web Visualization <img align="right"
+				src="img/headerlogoboschlanguagedependent.png">
+		</div>
+
+		<div id="break"></div>
+		<br><br><br> <center> <canvas
+						id="WEBGL_CANVAS" width="800" height="490"
+						style="border: 2px solid black background-color: xs#A3C7D9"></canvas>
+
+					<center>
+					<div id="video1"></div>
+					</center> </center>
+	</div>
+
+</body>
+</html>

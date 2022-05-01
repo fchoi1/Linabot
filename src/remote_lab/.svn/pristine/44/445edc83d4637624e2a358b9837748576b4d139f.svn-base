@@ -1,0 +1,13 @@
+<launch>
+  <include file="$(find wviz)/launch/gazebo_headless.launch"/>
+  <include file="$(find pr2_gazebo)/pr2.launch"/>
+  
+  <include file="$(find wviz)/launch/static_transforms.launch"/>
+  <include file="$(find wviz)/launch/tf_throttle.launch"/>
+  <include file="$(find wviz)/launch/head_state_throttle.launch"/>
+<!--  <include file="$(find wviz)/launch/rosbridge.launch"/>-->
+  <include file="$(find wviz)/launch/wviz_scene_manager.launch"/>
+  <include file="$(find wviz)/launch/wviz_tf_manager.launch"/>
+  <include file="$(find wviz)/launch/jtteleop.launch"/>
+  <include file="$(find wviz)/launch/ping.launch"/>
+</launch>

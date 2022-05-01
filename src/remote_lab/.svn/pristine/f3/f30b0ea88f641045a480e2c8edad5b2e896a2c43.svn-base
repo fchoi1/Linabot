@@ -1,0 +1,43 @@
+
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Video Test</title> 
+
+<script type="text/javascript" src="resources/jquery.min.js"></script>
+<script type="text/javascript" src="resources/json2.js"></script>
+<script type="text/javascript" src="resources/ros.js"></script>
+<script type="text/javascript" src="resources/spidergl.js"> </script> 
+<script type="text/javascript" src="ros/ros.js"> </script> 
+
+<script> 
+var i = 0;
+<!--var locations=["mjpeg_iframe_web.html?", "mjpeg_iframe_web.html?"];-->
+var locations = ["mjpeg_iframe_web.html?"+"shelob:8080/?topic=/remote_lab_cam0/image_raw", "mjpeg_iframe_web.html?"+"shelob:8080/?topic=/remote_lab_cam1/image_raw"];
+<!--var locations = ["test_mjpeg_iframe0.html", "test_mjpeg_iframe1.html"];-->
+var len = locations.length;
+
+function start()
+{
+  $('#change_video_click').click(function(e){
+    $('#frame').attr('src', locations[++i % len]);
+  });
+  
+}
+
+
+</script> 
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+</head> 
+
+<body onload="start()"> 
+<iframe id="frame" width=640 height=480></iframe>
+<button type="button", id="change_video_click"> Change Video</button>
+</body> 
+ 
+</html> 

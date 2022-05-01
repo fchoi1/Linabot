@@ -1,0 +1,8 @@
+<launch>
+  <node name="webserver" pkg="roswww" type="webserver.py" respawn="false" output="screen"/>
+  <include file="$(find mjpeg_server)/launch/mjpeg_server.launch" />
+  <node name="wviz_tf_manager" pkg="wviz_tf_manager" type="wviz_tf_manager" respawn="false" output="screen"/>
+  <node name="tf_lister" pkg="tf_lister" type="tf_lister.py" respawn="false" output="screen"/>
+  <node name="rosbridge" pkg="rosbridge_server" type="rosbridge.py" respawn="false" output="screen"/>
+  <node name="rosapi" pkg="rosapi" type="rosapi.py" respawn="false" output="screen"/>	
+</launch>

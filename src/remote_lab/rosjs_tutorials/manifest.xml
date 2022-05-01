@@ -1,0 +1,18 @@
+<package>
+  <description brief="rosjs_tutorials">
+    rosjs tutorials.
+  </description>
+  <author>Benjamin Pitzer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosjs_tutorials</url>
+  <!-- depend package="rosjs"/ -->
+  <depend package="rosjs_common"/>
+  <depend package="rosjs_visualization"/>
+  <depend package="rosjs_remotelabwidgets"/>
+  <depend package="wviz_tf_manager"/>
+  <depend package="wviz_scene_manager"/>
+  <depend package="interactive_marker_client"/>
+</package>
+
+

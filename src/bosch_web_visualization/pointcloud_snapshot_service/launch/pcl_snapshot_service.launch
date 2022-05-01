@@ -1,0 +1,5 @@
+<launch>
+  <node name="pointcloud_snapshot_service" pkg="pointcloud_snapshot_service" type="pointcloud_snapshot" respawn="false" output="screen">
+
+  </node>
+</launch>

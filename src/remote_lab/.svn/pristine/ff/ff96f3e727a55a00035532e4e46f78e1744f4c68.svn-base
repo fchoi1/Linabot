@@ -1,0 +1,19 @@
+<package>
+  <description brief="rosjs_assisted_teleoperation">
+
+     rosjs_assisted_teleoperation
+
+  </description>
+  <author>Sarah Osentoski</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosjs_assisted_teleoperation</url>
+  <depend package="rosbridge_server"/>
+  <depend package="rosapi"/>
+  <depend package="rosjs_common"/>
+  <depend package="rosjs_visualization"/>
+  <depend package="rosjs_remotelabwidgets"/>
+  <depend package="visualization_msgs"/>
+</package>
+
+

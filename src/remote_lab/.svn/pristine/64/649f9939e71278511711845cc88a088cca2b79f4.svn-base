@@ -1,0 +1,518 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="language" content="en" />
+	<title>Pick and Place Demo</title>
+	<link rel="stylesheet" type="text/css" href="css/layout-default-latest.css" />
+	<link rel="stylesheet" type="text/css" href="css/themes/base/jquery.ui.all.css" />
+	<!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+	<link rel="stylesheet" type="text/css" href="css/remote_lab.css" />
+
+  	<!-- REQUIRED scripts for layout widget -->
+  	<script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+  	<script type="text/javascript" src="js/jquery/jquery-ui-latest.js"></script>
+  	<script type="text/javascript" src="js/jquery/jquery.layout-latest.js"></script>
+  	<script type="text/javascript" src="js/jquery/themeswitchertool.js"></script>
+  	<script type="text/javascript" src="js/jquery/debug.js"></script>
+  	<script type="text/javascript" src="js/RGraph/RGraph.common.core.js" ></script>
+  	<script type="text/javascript" src="js/RGraph/RGraph.common.context.js" ></script>
+  	<script type="text/javascript" src="js/RGraph/RGraph.line.js" ></script>
+	<script type="text/javascript" src="js/spidergl/spidergl.js"></script>
+	<script type="text/javascript" src="js/joystick.js"></script>
+
+	<!-- REQUIRED scripts for ROS -->
+	<script type="text/javascript" src="js/ros/ros.js"></script>
+	<script type="text/javascript" src="js/ros/b64codec/b64codec.js"></script>
+  	<script type="text/javascript" src="js/ros/binaryparser/binaryparser.js"></script>
+	<script type="text/javascript" src="js/ros/common.js"></script>
+	<script type="text/javascript" src="js/ros/visualization/visualization.js"></script>
+  	<script type="text/javascript" src="js/ros/remotelabwidgets/remotelabwidgets.js"></script>
+  	<script type="text/javascript" src="js/ros/pickandplace/pickandplace.js"></script>
+
+  	<script type="text/javascript">
+  var outerLayout;
+  var pickandplace;
+  var widgetmanager;
+  var tf;
+
+
+  var rosjs_server=null; //= "rosjs.pr2-remotelab.com";
+  var mjpeg_server=null; //= "mjpeg.pr2-remotelab.com";
+
+  var img_web = "mjpeg_iframe_web.html";
+  var myLayout, $westAccordion, $eastAccordion; // init global vars
+  var selected_object;
+  var active_control=1; //0 - pick and place, 1 - keyboard
+  var pr2keycont;
+  var node;
+
+  function resizeWidgets () {
+	//myLayout.resizeAll();
+    $westAccordion.accordion("resize");
+    $eastAccordion.accordion("resize");
+  };
+
+
+  function log(msg) {
+    jQuery('#log').append(msg.toString() + '<br>');
+  };
+
+
+
+  function resizeCanvas() {
+    var state = outerLayout.state;
+    var c = document.getElementById('WEBGL_CANVAS');
+    var westOffset = state.west.isClosed?0:state.west.size;
+    var eastOffset = state.east.isClosed?0:state.east.size;
+    c.width  = state.container.innerWidth - eastOffset - westOffset - 50;
+    c.height = state.container.innerHeight - state.south.size - state.north.size - 50;
+  }
+
+  function addMarkerToScene(node, marker_topic) {
+    srv = node.serviceClient("/wviz_scene_manager/add_marker");
+    srv.call(ros.json([marker_topic]), ros.nop);
+  }
+
+  function updateAllTransforms(node) {
+    srv = node.serviceClient("/wviz_tf_manager/publish_all_transforms");
+    srv.call(ros.json([]), ros.nop);
+  }
+
+  function createSnapshotWidget(div_id, selector_div_id, initial_topic) {
+    var video_width = 320;
+    var video_height = 240;
+    var video_quality = 30;
+    var video_update_interval = 1000;
+    var img_url= "http://" + mjpeg_server + ":8080/snapshot?topic="+initial_topic+"?width="+video_width+"?height="+video_height+"?quality="+video_quality;
+    var video = new ros.widgets.SnapshotWidget(div_id, video_width, video_height, img_url, video_update_interval);
+    
+    jQuery("#"+selector_div_id).change(function(){
+      var topic=jQuery("#"+selector_div_id).val();
+      var img_url= "http://" + mjpeg_server + ":8080/snapshot?topic="+ topic +"?width="+video_width+"?height="+video_height+"?quality="+video_quality;
+      video.uri = img_url;
+    });
+  }
+  
+  function startPickAndPlace(node)
+  {
+    
+    tf = new ros.tf.TransformListener(node, "/tf_changes");
+    var vm = new ros.visualization.VisualizationManager("WEBGL_CANVAS");
+    vm.initialize(node, tf);
+
+//    pickandplace = new ros.pickandplace.PickAndPlaceManager(node,vm);
+
+    widgetmanager = new ros.widgets.WidgetManager(node);
+    widgetmanager.setupWidgets();
+
+    // create frame counter
+    var fpsobj = document.getElementById("nav_element_fps");
+    if (fpsobj) {
+      var fps_widget = new ros.widgets.FPSCounterWidget(fpsobj);
+      vm.scene_viewer.setOnDraw(function (gl,xform) {
+        fps_widget.update();
+      });
+    }
+
+    // create bitrate counter
+    var bitrateobj = document.getElementById("nav_element_bitrate");
+    if (bitrateobj) {
+      var bitrate_widget = new ros.widgets.BitrateWidget(bitrateobj);
+      node.setOnMessage(function (e) {
+        bitrate_widget.update(e.data.length * 8.0);
+      });
+    }
+
+    // create bitrate graph
+
+    $( "#bitrate_graph_dialog" ).dialog({ height: 450,  width: 850 });
+    var bitrategraphobj = document.getElementById("bitrate_graph");
+    if (bitrategraphobj) {
+      var bitrate_graph_widget = new ros.widgets.BitrateGraphWidget(bitrateobj);
+      bitrate_graph_widget.setTopics(["/tf_changes","/dashboard_agg","/head_traj_controller_state_throttle"]);
+      bitrate_graph_widget.drawGraph();
+      node.setOnMessage(function (e) {
+        bitrate_graph_widget.update(e);
+      });
+    }
+
+    $( "#ping_graph_dialog" ).dialog({ height: 450,  width: 850 });
+
+    //vm.addTF();
+    //vm.addMarker("/visualization_marker");
+    //vm.addMarker("/tabletop_detector_markers");
+    vm.addVisualizationScene("/scene");
+//    addMarkerToScene(node,"/tabletop_detector_markers");
+    addMarkerToScene(node,"/tabletop_segmentation_markers");
+    addMarkerToScene(node,"/tabletop_object_recognition_markers");
+    
+    var pickAndPlaceWidget=new ros.widgets.pr2_pickandplace_widget(node, 'pickandplace', vm);
+    vm.addGrid("/odom_combined", 10.0, 1.0);
+    var robot_model = vm.addRobotModel("resources/pr2_description/pr2_urdf.xml");
+    //var robot_model = vm.addRobotModel("resources/pr2_description/gripper_urdf.xml");
+    var remotelab_model = vm.addRobotModel("resources/remote_lab_description/table_urdf.xml");
+    remotelab_model.setPosition(new ros.math.Vector3(1.3,-1.7,-0.03));
+    //remotelab_model.enableLight(true);
+    vm.addPointCloud2('/rosjs_point_cloud_converter/pointcloud2');
+    //vm.addBox("/odom_combined");
+    //vm.addSphere("/odom_combined");
+
+    createSnapshotWidget("image_display1", "camera_stream_selector1","/remote_lab_cam0/image_raw?invert");
+    createSnapshotWidget("image_display2", "camera_stream_selector2","/remote_lab_cam1/image_raw");
+    createSnapshotWidget("image_display3", "camera_stream_selector3","/remote_lab_cam2/image_raw");
+   
+    console.log("defining key control");
+    //we are starting with the pick and place active.  Tus make sure l_cart and r_cart are not running right away
+    controller_manager_switcher_service=node.serviceClient('/pr2_controller_manager/switch_controller');
+    controller_manager_switcher_service.call(ros.json([[ ],['l_cart', 'r_cart'],2]), ros.nop);
+
+      pr2keycont = new ros.widgets.PR2KeyControl(node, '/l_cart/command_pose', 'geometry_msgs/PoseStamped','/r_cart/command_pose', 'geometry_msgs/PoseStamped',  '/base_controller/command', 'geometry_msgs/Twist', '/l_gripper_controller/command','/r_gripper_controller/command','pr2_controllers_msgs/Pr2GripperCommand','/head_traj_controller/command', 'trajectory_msgs/JointTrajectory', '/head_traj_controller_state_throttle', tf, '/torso_lift_link', '/l_wrist_roll_link','/r_wrist_roll_link');
+     
+
+    // update all transforms every second
+    updateAllTransforms(node);
+    setInterval(function() {updateAllTransforms(node); }, 10000);
+
+      var stick=new Joystick('joystickholder');
+      setInterval(function(){
+	  node.publish('/base_controller/command', 'geometry_msgs/Twist',
+		      ros.json({'linear': {'x': stick.x,
+				       'y': 0,
+				       'z': 0},
+			    'angular':{'x': 0,
+				       'y': 0,
+				       'z': stick.z}}))
+
+      }, 50);
+  }
+
+	function checkCookie(){
+	  if(rosjs_server!=null && rosjs_server!="" && mjpeg_server!=null && mjpeg_server!=""){
+	   
+	   
+	  }
+	  else{
+	  	$( "#set_server_dialog" ).dialog({ height: 450,  width: 850 });
+		setCookie()
+	  }
+		
+	}
+
+   function start()
+  {
+  
+    var webaddress=window.location.href;//$(location).attr('href');
+    var imgaddress ="http://"+ webaddress.slice(webaddress.indexOf('?')+1);
+     //var rosjs_server = "rosjs.pr2-remotelab.com";
+  	//var mjpeg_server = "mjpeg.pr2-remotelab.com";
+  	
+  	checkCookie();
+  	
+    node = new ros.NodeHandle("ws://" + rosjs_server + ":9090");
+    node.setOnClose(function(e) {
+	log("Disconnected or Can't Connect.");
+    });
+
+    node.setOnError(function(e) {
+	log("Unknown error!");
+    });
+
+      node.setOnOpen(function(e) {
+	  log("Connected to " + node.url + ".");
+
+	startPickAndPlace(node);
+    });
+
+  }
+
+  /*
+  *#######################
+  *     ON PAGE LOAD
+  *#######################
+  */
+  jQuery(document).ready( function() {
+
+    jQuery("#right_nav").tabs();
+
+    // create the OUTER LAYOUT
+    //outerLayout = jQuery("body").layout( layoutSettings );
+
+    outerLayout = jQuery('body').layout({
+      west__size:     300
+    , east__size:     320
+    , south__size:    150
+      // RESIZE Accordion widget when panes resize
+    , west__onresize:   function () { jQuery("#accordion_west").accordion("resize"); }
+    , east__onresize:   function () { jQuery("#accordion_east").accordion("resize"); }
+    , center__onresize_end:     function () { resizeCanvas(); }
+    });
+
+    // ACCORDION - in the West pane
+
+    $westAccordion = jQuery("#accordion_west").accordion({
+
+	fillSpace:  true,
+//	active:   1,
+	change: function(event, ui){
+	    controller_manager_switcher_service=node.serviceClient('/pr2_controller_manager/switch_controller');
+	    active_control = jQuery( "#accordion_west" ).accordion( "option", "active" );
+	    console.log(active_control);
+
+	    if(active_control==1){
+		$("input[name='manual_control_select']")[0].checked=true;//always start with button off
+	//	pr2keycont.start($("input[name='selected_arm_manual']:checked").val());
+		//	controller_manager_switcher_service.call(ros.json([['l_cart', 'r_cart' ],['l_arm_controller', 'r_arm_controller'],2]), ros.nop);
+	    }
+	    else{
+		pr2keycont.stop();
+		controller_manager_switcher_service.call(
+		    ros.json([['l_arm_controller', 'r_arm_controller'],['l_cart', 'r_cart' ],2]), function(v){console.log(v);});
+	    }}
+    });
+
+
+
+    // ACCORDION - in the West pane
+    $eastAccordion = jQuery("#accordion_east").accordion({
+      fillSpace:  true
+    });
+
+    // THEME SWITCHER
+    addThemeSwitcher('.ui-layout-north',{ top: '12px', right: '20px' });
+    // if a new theme is applied, it could change the height of some content,
+    // so call resizeAll to 'correct' any header/footer heights affected
+    // NOTE: this is only necessary because we are changing CSS *AFTER LOADING* using themeSwitcher
+    setTimeout( resizeWidgets, 1000 ); /* allow time for browser to re-render with new theme */
+
+
+
+    log("ok setup");
+
+
+    // DEMO HELPER: prevent hyperlinks from reloading page when a 'base.href' is set
+    jQuery("a").each(function () {
+      var path = document.location.href;
+      if (path.substr(path.length-1)=="#") path = path.substr(0,path.length-1);
+      if (this.href.substr(this.href.length-1) == "#") this.href = path +"#";
+    });
+
+/*
+    jQuery(function() {
+	jQuery( "#selectable" ).selectable({
+	    stop:function(){
+		jQuery(".ui-selected", this). each(function(){
+		     selected_object=this.value;
+
+		} );
+	    }
+	});
+    });
+*/
+
+      $("input[name='manual_control_select']").change(function(){
+	  controller_manager_switcher_service=node.serviceClient('/pr2_controller_manager/switch_controller');
+	  value=$("input[name='manual_control_select']:checked").val();
+
+	  console.log("value " + value);
+	  if(value=="on"){
+	      console.log('starting keyboard service');
+	      controller_manager_switcher_service.call(ros.json([['l_cart', 'r_cart' ],['l_arm_controller', 'r_arm_controller'],2]), ros.nop);
+	      pr2keycont.start($("input[name='selected_arm_manual']:checked").val());
+	     /* pr2keycont.setOnInitialized(function(e) {
+
+		  pr2keycont.keyControlOn();});*/
+	      }
+	  else{
+	      pr2keycont.stop();
+	      controller_manager_switcher_service.call(ros.json([['l_arm_controller', 'r_arm_controller' ],['l_cart', 'r_cart'],2]), ros.nop);
+	  }
+
+	  //  pr2keycont.switch_arm($("input[name='selected_arm_manual']:checked").val());
+      });
+
+      jQuery("input[name='selected_arm_manual']").change(function(){
+	  console.log(jQuery("input[name='selected_arm_manual']:checked").val());
+	  pr2keycont.switch_arm(jQuery("input[name='selected_arm_manual']:checked").val());
+      });
+     
+
+    resizeCanvas();
+  });
+</script>
+
+</head>
+<body onload="start()">
+
+<style>
+  #feedback { font-size: 1.2em; }
+  #selectable .ui-selecting { background: #FECA40; }
+  #selectable .ui-selected { background: #F39814; color: white; }
+  #selectable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+  #selectable li { margin: 3px; padding: 0.4em; font-size: 1.2em; height: 18px; }
+
+</style>
+
+<div class="ui-layout-west" style="display: none;">
+  <div class="ui-widget-header">Robot Control</div>
+  <div class="ui-layout-content">
+	  <div id="accordion_west" class="basic">
+		  <h3 ><a href="#"> Pick And Place</a></h3>
+		  <div id="pickandplace">
+		   
+		  </div>
+		  <h3 id="keycontrol"><a href="#"> Key Control</a></h3>
+		  <div>
+
+		      <input type="radio" name="selected_arm_manual" value="l" checked/> Left Arm
+		      <input type="radio" name="selected_arm_manual" value="r"/> Right Arm><br>
+Robot Control:
+                      <input type="radio" name="manual_control_select" value="off" checked/> Off
+                      <input type="radio" name="manual_control_select" value="on"/> On><br>
+                      Robot Driver:
+			  <div id="joystickholder" style="width: 200px; height: 200px; border: solid 2px black;"></div>
+			  <div style="font-size: 0.8em;">
+			    Head and Arm Keyboard Control:
+			    Use the v and b keys to pan the head<br>
+			    Use the n and m keys to tilt<br>
+			    <br>
+			    w moves the hand away from the body, s closer <br>
+			    a moves the hand left, d right<br>
+			    q raises the hand, e lowers it<br>
+			  </div>
+		  </div>
+		</div>
+  </div>
+</div>
+
+<div class="ui-layout-east" style="display: none;">
+  <div class="ui-widget-header">Visualization</div>
+  <div class="ui-layout-content">
+
+  <div id="accordion_east" class="basic">
+
+    <h3><a href="#">Camera Streams</a></h3>
+    <div>
+	    <select id="camera_stream_selector1">
+	          <optgroup label="Remote Cameras">
+             <option selected="select" value="/remote_lab_cam0/image_raw?invert"> /remote_lab_cam0 </option>
+             <option value="/remote_lab_cam1/image_raw"> /remote_lab_cam1 </option>
+             <option value="/remote_lab_cam2/image_raw"> /remote_lab_cam2 </option>
+             <option value="/remote_lab_cam3/image_raw?invert"> /remote_lab_cam3 </option>
+	          </optgroup>
+	          <optgroup label="Robot's Cameras">
+	           <option value="/wide_stereo/right/image_rect_color">/wide_stereo/right</option>
+	           <option value="/narrow_stereo/left/image_rect_color">/narrow_stereo/left</option>
+	           <option value="/wide_stereo/left/image_rect_color">/wide_stereo/left</option>
+	           <option value="/r_forearm_cam/image_rect_color">/r_forearm_cam</option>
+	           <option value="/l_forearm_cam/image_rect_color">/l_forearm_cam</option>
+	          </optgroup>
+	    </select>
+	    <div id="image_display1"></div>
+	    
+	    <select id="camera_stream_selector2">
+            <optgroup label="Remote Cameras">
+             <option value="/remote_lab_cam0/image_raw?invert"> /remote_lab_cam0 </option>
+             <option value="/remote_lab_cam1/image_raw"> /remote_lab_cam1 </option>
+             <option value="/remote_lab_cam2/image_raw"> /remote_lab_cam2 </option>
+             <option value="/remote_lab_cam3/image_raw?invert"> /remote_lab_cam3 </option>
+            </optgroup>
+             <optgroup label="Robot's Cameras">
+             <option value="/wide_stereo/right/image_rect_color">/wide_stereo/right</option>
+             <option value="/narrow_stereo/left/image_rect_color">/narrow_stereo/left</option>
+             <option value="/wide_stereo/left/image_rect_color">/wide_stereo/left</option>
+             <option value="/r_forearm_cam/image_rect_color">/r_forearm_cam</option>
+             <option value="/l_forearm_cam/image_rect_color">/l_forearm_cam</option>
+            </optgroup>
+      </select>
+      <div id="image_display2"></div>
+      
+      <select id="camera_stream_selector3">
+            <optgroup label="Remote Cameras">
+             <option value="/remote_lab_cam0/image_raw?invert"> /remote_lab_cam0 </option>
+             <option value="/remote_lab_cam1/image_raw"> /remote_lab_cam1 </option>
+             <option value="/remote_lab_cam2/image_raw"> /remote_lab_cam2 </option>
+             <option value="/remote_lab_cam3/image_raw?invert"> /remote_lab_cam3 </option>
+            </optgroup>
+             <optgroup label="Robot's Cameras">
+             <option value="/wide_stereo/right/image_rect_color">/wide_stereo/right</option>
+             <option value="/narrow_stereo/left/image_rect_color">/narrow_stereo/left</option>
+             <option value="/wide_stereo/left/image_rect_color">/wide_stereo/left</option>
+             <option value="/r_forearm_cam/image_rect_color">/r_forearm_cam</option>
+             <option value="/l_forearm_cam/image_rect_color">/l_forearm_cam</option>
+            </optgroup>
+      </select>
+      <div id="image_display3"></div>
+    </div>
+
+    </div>
+
+  </div>
+</div>
+
+
+<div class="ui-layout-north ui-widget-content" style="display: none;">
+
+  <div id="navigation" class="ui-tabs ui-widget ui-widget-content ui-corner-all" >
+    <ul id="right_nav" class="ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all">
+      <li> <img src="img/pr2_remote_lab.png" height="50"/><img src="img/newbrownlogo.png" height="50"/><img src="img/Bosch_logo_invented_for_life__400x50.png" height="50"/></li> 
+      <li><div id="nav_element_motors" title="Motors" class="nav_element"  objtype=MotorsMonitorWidget topic="/dashboard_agg"></div></li>
+	    <li><div id="nav_element_circuits" title="Circuits" class="nav_element"  objtype=CircuitMonitorWidget topic="/dashboard_agg"></div></li>
+	    <li><div id="nav_element_charge" class="nav_element" objtype=ChargeMonitor topic="c"></div></li>
+	    <li><div id="nav_element_battery" title="Battery" class="nav_element"  objtype=BatteryMonitorWidget topic="/dashboard_agg" style="white-space:nowrap; font-weight: normal"></div></li>
+	    <li><div id="nav_element_wireless" title="Wireless" class="nav_element"  objtype=WirelessSignalMonitor topic="/dashboard_agg"></div></li>
+	    <li>
+	        <div id="nav_element_fps" title="FPS" class="nav_element"></div>
+	        <div id="nav_element_bitrate" title="ROSJS Bitrate" class="nav_element"></div>
+	    <!--
+	        <div id="nav_element_ping" title="Ping" class="nav_element" objtype=PingWidget topic="/pong"></div>
+	    -->
+	    </li>
+	    <li><div id="nav_element_runstop" title="Runstop" class="nav_element"  objtype=RunStopWidget></div></li>
+	    
+	    <!--
+	    <li>
+	      <div>
+			    <button onClick="resizeWidgets()">Resize</button> &nbsp;
+			    <button onClick="removeUITheme(); resizeWidgets()">Remove Theme</button>
+			  </div>
+	    </li>
+	    -->
+    </ul>
+  </div>
+</div>
+
+
+<div class="ui-layout-south ui-widget-content" style="display: none;">
+  <div id="log" style="font-size: 1.5em;"><br/></div>
+</div>
+
+<div class="ui-layout-center" style="display: none;">
+  <p class="ui-layout-content ui-widget-content">
+    <canvas id="WEBGL_CANVAS" width="500" height="500" style="border: 2px solid black"></canvas>
+
+  </p>
+
+</div>
+
+<!--  <div id="bitrate_graph_dialog" title="ROSJS Bitrate">
+  <div id="bitrate_graph">
+  <canvas id="bitrate_graph_canvas" width="800" height="400" style="float: right">[No canvas support]</canvas>
+   </div>
+</div>
+
+<div id="ping_graph_dialog" title="Ping">
+  <div id="ping_graph" objtype=PingGraphWidget topic="/pong">
+  <canvas id="ping_graph_canvas" width="800" height="400" style="float: right">[No canvas support]</canvas>
+   </div>
+</div>-->
+
+<div id="set_server_dialog" title="">
+  <div id="set_server_div">
+  </div>
+</div>
+   
+</body>
+</html>

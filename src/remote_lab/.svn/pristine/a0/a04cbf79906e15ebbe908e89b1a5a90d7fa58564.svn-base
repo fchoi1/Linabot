@@ -1,0 +1,15 @@
+<launch>
+  <include file="$(find wviz)/launch/stereo_camera_parameters.launch"/>
+  <include file="$(find wviz)/launch/static_transforms.launch"/>
+  <include file="$(find wviz)/launch/mjpeg_server_remote.launch"/>
+  <include file="$(find wviz)/launch/remote_lab_cameras.launch"/>
+  <include file="$(find wviz)/launch/tf_throttle.launch"/>
+  <include file="$(find wviz)/launch/head_state_throttle.launch"/>
+  <include file="$(find wviz)/launch/rosbridge_remote.launch"/>
+  <include file="$(find wviz)/launch/wviz_scene_manager.launch"/>
+  <include file="$(find wviz)/launch/wviz_tf_manager.launch"/>
+  <include file="$(find pr2_tabletop_manipulation_launch)/launch/pr2_tabletop_manipulation.launch"/>
+  <include file="$(find wviz)/launch/pr2_pick_and_place_service.launch"/> 
+  <include file="$(find wviz)/launch/jtteleop.launch"/>
+  <include file="$(find wviz)/launch/ping.launch"/>
+</launch>

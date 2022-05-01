@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find wviz)/launch/machines.launch" />
+  <node name="rosbridge" pkg="rosbridge" type="rosbridge.py" respawn="false" output="screen" machine="rosbridge_server"/>
+</launch>

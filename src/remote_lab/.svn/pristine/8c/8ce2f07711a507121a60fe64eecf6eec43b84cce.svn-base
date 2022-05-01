@@ -1,0 +1,131 @@
+all: remote_lab_examples
+
+export ROSJS_PATH=./js/ros
+export JS_PATH=./js
+export REMOTE_LAB_EXAMPLES_PATH=./
+export RESOURCE_PATH=./resources
+export IMAGES_PATH=./images
+
+create_rosjs_directory = \
+      if ! test -d $(ROSJS_PATH) ; then \
+        echo "  -- Creating include directory $(ROSJS_DIR)" ; \
+        mkdir $(ROSJS_PATH) ; \
+      fi; 
+
+link_rosjs = \
+	export dir=`rospack find rosbridge` ; \
+	echo "path $$dir" ; \
+	for i in `ls $$dir | grep .js` ; do \
+			if test -f $$dir/$$i ; then \
+				echo "  -- Sym-linking $$i to $(ROSJS_PATH)" ; \
+				if test -f $(ROSJS_PATH)/$$i || test -d $(ROSJS_PATH)/$$i ; then \
+					rm -rf $(ROSJS_PATH)/$$i ; \
+				fi; \
+				ln -f -s $$dir/$$i $(ROSJS_PATH)/$$i ; \
+			fi; \
+	done 
+
+link_rosjs_common = \
+	export dir=rosjs_common/js ; \
+	echo "path $$dir" ; \
+	for i in `ls ../$$dir` ; do \
+			if test -f ../$$dir/$$i || test -d ../$$dir/$$i ; then \
+				echo "  -- Sym-linking $$i to $(ROSJS_PATH)" ; \
+				if test -f $(ROSJS_PATH)/$$i || test -d $(ROSJS_PATH)/$$i ; then \
+					rm -rf $(ROSJS_PATH)/$$i ; \
+				fi; \
+				ln -f -s ../../../$$dir/$$i $(ROSJS_PATH)/$$i ; \
+			fi; \
+	done 
+
+link_rosjs_visualization = \
+	export dir=rosjs_visualization/js ; \
+	echo "path $$dir" ; \
+	for i in `ls ../$$dir` ; do \
+			if test -f ../$$dir/$$i || test -d ../$$dir/$$i ; then \
+				echo "  -- Sym-linking $$i to $(ROSJS_PATH)" ; \
+				if test -f $(ROSJS_PATH)/$$i || test -d $(ROSJS_PATH)/$$i ; then \
+					rm -rf $(ROSJS_PATH)/$$i ; \
+				fi; \
+				ln -f -s ../../../$$dir/$$i $(ROSJS_PATH)/$$i ; \
+			fi; \
+	done 
+
+link_rosjs_remotelabwidgets = \
+	export dir=rosjs_remotelabwidgets/js ; \
+	echo "path $$dir" ; \
+	for i in `ls ../$$dir` ; do \
+			if test -f ../$$dir/$$i || test -d ../$$dir/$$i ; then \
+				echo "  -- Sym-linking $$i to $(ROSJS_PATH)" ; \
+				if test -f $(ROSJS_PATH)/$$i || test -d $(ROSJS_PATH)/$$i ; then \
+					rm -rf $(ROSJS_PATH)/$$i ; \
+				fi; \
+				ln -f -s ../../../$$dir/$$i $(ROSJS_PATH)/$$i ; \
+			fi; \
+	done 
+
+
+link_resources_js=\
+	export dir=rosjs_resources/js ; \
+	echo "path $$dir" ; \
+	for i in `ls ../$$dir` ; do \
+		if test -f ../$$dir/$$i || test -d ../$$dir/$$i ; then \
+			echo "  -- Sym-linking $$i to $(JS_PATH)" ; \
+			if test -f $(JS_PATH)/$$i || test -d $(JS_PATH)/$$i ; then \
+				rm -rf $(JS_PATH)/$$i ; \
+			fi; \
+			 ln -f -s ../../$$dir/$$i $(JS_PATH)/$$i ; \
+		fi; \
+     done
+
+
+link_resources=\
+	export dir=rosjs_resources/resources ; \
+	echo "path $$dir" ; \
+	for i in `ls ../$$dir` ; do \
+		if test -f ../$$dir/$$i || test -d ../$$dir/$$i ; then \
+			echo "  -- Sym-linking $$i to $(RESOURCE_PATH)" ; \
+			if test -f  $(RESOURCE_PATH)/$$i || test -d $(RESOURCE_PATH)/$$i ; then \
+				rm -rf $(RESOURCE_PATH)/$$i ; \
+			fi; \
+			ln -f -s ../../$$dir/$$i $(RESOURCE_PATH)/$$i ; \
+		fi;\
+	done
+
+
+link_images=\
+	export dir=rosjs_resources/images ; \
+	echo "path $$dir" ; \
+	for i in `ls ../$$dir`; do \
+		if test -f ../$$dir/$$i || test -d ../$$dir/$$i ; then \
+			echo "  -- Sym-linking images to $(IMAGES_PATH)" ; \
+			if test -f  $(IMAGES_PATH)/$$i || test -d $(IMAGES_PATH)/$$i ; then \
+				rm -rf $(IMAGES_PATH)/$$i ; \
+			fi; \
+			ln -f -s ../../$$dir/$$i $(IMAGES_PATH)/$$i ; \
+		fi;\
+	done
+
+remove_all = \
+	export dir=$(ROSJS_PATH) ; \
+	echo "path $$dir" ; \
+	for i in `ls $$dir` ; do \
+			if test -f $$dir/$$i || test -d $$dir/$$i ; then \
+				echo "  -- Un-linking $$i" ; \
+				rm -rf $$dir/$$i ; \
+			fi; \
+	done 
+
+remote_lab_examples: 
+								  $(create_rosjs_directory)
+								  $(link_rosjs)
+									$(link_rosjs_common)
+									$(link_rosjs_visualization)
+									$(link_rosjs_remotelabwidgets)
+									$(link_resources_js)
+									$(link_resources)
+									$(link_images)							
+clean:
+									$(remove_all)
+
+wipe: clean

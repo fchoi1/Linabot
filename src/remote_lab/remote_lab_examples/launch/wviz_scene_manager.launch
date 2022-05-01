@@ -1,0 +1,3 @@
+<launch>
+  <node name="wviz_scene_manager" pkg="wviz_scene_manager" type="wviz_scene_manager" />
+</launch>

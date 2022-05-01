@@ -1,0 +1,40 @@
+
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Video Test</title> 
+
+<script type="text/javascript" src="resources/jquery.min.js"></script>
+<script type="text/javascript" src="resources/json2.js"></script>
+<script type="text/javascript" src="resources/ros.js"></script>
+<script type="text/javascript" src="resources/spidergl.js"> </script> 
+<script type="text/javascript" src="ros/ros.js"> </script> 
+
+<script> 
+function start()
+{
+  var video0 = new ros.widgets.MJPEGWidget("VIDEO_CANVAS_0","http://shelob:8080/?topic=/wide_stereo/right/image_color");
+  
+  function nop() {};
+  function json(obj) {return JSON.stringify(obj);};
+  
+  function log(msg) {
+    $('#log').append(msg.toString() + '<br>');
+  };
+  
+}
+
+</script> 
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+</head> 
+
+<body onload="start()"> 
+<img id="VIDEO_CANVAS_0" width="640" height="480"></img>
+</body> 
+ 
+</html> 

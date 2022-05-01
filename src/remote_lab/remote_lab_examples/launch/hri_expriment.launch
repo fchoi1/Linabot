@@ -1,0 +1,17 @@
+<launch>
+  <machine name="arwen_elec" address="arwen" ros-root="/opt/ros/electric/ros" ros-package-path="~/ros:/opt/ros/electric/stacks" />
+
+  <!-- rosbridge -->
+  <include file="$(find wviz)/launch/rosbridge_remote.launch" />
+  <!-- Mjpeg server -->
+  <include file="$(find wviz)/launch/mjpeg_server_remote.launch" />
+  <!-- remote Lab cam -->
+  <include file="$(find wviz)/launch/remote_lab_cameras.launch" />
+
+  <!-- wviz tf manager -->
+  <include file="$(find wviz)/launch/wviz_tf_manager_remote.launch" />
+  <node pkg="interactive_marker_client" name="interactive_marker_client" type="interactive_marker_client.py" machine="arwen_elec" />
+  <node pkg="robot_booking" name="robot_booking" type="bookkeeping.py" respawn="false" output="screen" machine="arwen_elec" />
+
+</launch>
+

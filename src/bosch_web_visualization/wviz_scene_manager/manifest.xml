@@ -1,0 +1,11 @@
+<package>
+  <description brief="wviz_scene_manager">A node maintains the scene state for web based visualization (wviz).</description>
+  <author>Benjamin Pitzer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/wviz_scene_manager</url>
+  <depend package="roscpp"/>
+  <depend package="std_msgs"/>
+  <depend package="roslib"/>
+  <depend package="visualization_msgs"/>
+</package>

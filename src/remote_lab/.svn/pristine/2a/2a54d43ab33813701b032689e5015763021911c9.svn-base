@@ -1,0 +1,15 @@
+<package>
+  <description brief="rosjs_pr2interaction">
+
+     rosjs_pr2interaction
+
+  </description>
+  <author>Sarah Osentoski</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosjs_pr2interaction</url>
+  <!-- depend package="rosjs"/ -->
+  <depend package="rosjs_common"/>
+</package>
+
+

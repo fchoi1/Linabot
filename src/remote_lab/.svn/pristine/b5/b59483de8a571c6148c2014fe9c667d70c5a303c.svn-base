@@ -1,0 +1,35 @@
+/*!                                                                                                                
+ * jQuery JavaScript Library v1.4.4                                                                                
+ * http://jquery.com/                                                                                              
+ *                                                                                                                 
+ * Copyright 2010, John Resig                                                                                      
+ * Dual licensed under the MIT or GPL Version 2 licenses.                                                          
+ * http://jquery.org/license                                                                                       
+ *                                                                                                                 
+ * Includes Sizzle.js                                                                                              
+ * http://sizzlejs.com/              
+ * Copyright 2010, The Dojo Foundation   
+ * Released under the MIT, BSD, and GPL Licenses.
+ *
+ * Date: Thu Nov 11 19:04:53 2010 -0500
+ */
+
+
+/**                                                                             
+ * @preserve jquery.layout 1.3.0 - Release Candidate 29.12                      
+ * $Date: 2010-11-12 08:00:00 (Thu, 18 Nov 2010) $                              
+ * $Rev: 302912 $                                                               
+ *                                                                              
+ * Copyright (c) 2010                                                           
+ *   Fabrizio Balliano (http://www.fabrizioballiano.net)                        
+ *   Kevin Dalman (http://allpro.net)                                           
+ *                                                                              
+ * Dual licensed under the GPL (http://www.gnu.org/licenses/gpl.html)           
+ * and MIT (http://www.opensource.org/licenses/mit-license.php) licenses.       
+ *                                                                              
+ * Docs: http://layout.jquery-dev.net/documentation.html                        
+ * Tips: http://layout.jquery-dev.net/tips.html                                 
+ * Help: http://groups.google.com/group/jquery-ui-layout                        
+ */
+
+

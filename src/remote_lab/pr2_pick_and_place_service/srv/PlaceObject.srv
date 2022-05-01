@@ -1,0 +1,5 @@
+string command
+string arm
+
+---
+bool response

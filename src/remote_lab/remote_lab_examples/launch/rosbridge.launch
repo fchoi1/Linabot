@@ -1,0 +1,3 @@
+<launch>
+  <node name="rosbridge" pkg="rosbridge" type="rosbridge.py" respawn="false" output="screen"/>
+</launch>

@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="language" content="en" />
+  <title>Customize your interface Demo</title>
+  <link rel="stylesheet" type="text/css" href="../../wviz/css/layout-default-latest.css" />
+  <link rel="stylesheet" type="text/css" href="../../wviz/css/themes/base/jquery.ui.all.css" />
+  <!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+  <link rel="stylesheet" type="text/css" href="../../wviz/css/remote_lab.css" />
+
+  <!-- REQUIRED scripts for layout widget -->
+  <script type="text/javascript" src="../../wviz/js/jquery/jquery-latest.js"></script>
+  <script type="text/javascript" src="../../wviz/js/jquery/jquery-ui-latest.js"></script>
+  <script type="text/javascript" src="../../wviz/js/jquery/jquery.layout-latest.js"></script>
+  <script type="text/javascript" src="../../wviz/js/jquery/themeswitchertool.js"></script>
+  <script type="text/javascript" src="../../wviz/js/jquery/debug.js"></script>
+  <script type="text/javascript" src="../../wviz/js/RGraph/RGraph.common.core.js" ></script>
+  <script type="text/javascript" src="../../wviz/js/RGraph/RGraph.common.context.js" ></script>
+  <script type="text/javascript" src="../../wviz/js/RGraph/RGraph.line.js" ></script>
+	<script type="text/javascript" src="../../wviz/js/spidergl/spidergl.js"></script>
+	<script type="text/javascript" src="../../wviz/js/joystick.js"></script>
+
+	<!-- REQUIRED scripts for ROS -->
+	<script type="text/javascript" src="../../wviz/js/ros/ros.js"></script>
+	<script type="text/javascript" src="../../wviz/js/ros/common.js"></script>
+	<script type="text/javascript" src="../../wviz/js/ros/remotelabwidgets/remotelabwidgets.js"></script>
+
+  <script type="text/javascript">
+  var outerLayout;
+  var widgetmanager;
+  var myLayout, $westAccordion, $eastAccordion; // init global vars
+  var node;
+  var topics_widget;
+
+  function resizeWidgets () {
+    //myLayout.resizeAll();
+    $westAccordion.accordion("resize");
+    $eastAccordion.accordion("resize");
+  };
+
+  function $(id) { return document.getElementById(id); }
+
+  function startGettingLists(node){
+    widgetmanager = new ros.widgets.WidgetManager(node);
+    widgetmanager.setupWidgets();
+
+    // create topic lister
+    var tobj = document.getElementById("nav_element_topics");
+    if (tobj) {
+      topics_widget = new ros.widgets.TopicWidget(tobj, node);
+    };
+
+    // create service lister
+    var sobj = document.getElementById("nav_element_services");
+    if (sobj) {
+      services_widget = new ros.widgets.ServiceWidget(sobj, node);
+    };
+    
+  }
+
+  function start()
+  {
+    node = new ros.NodeHandle("ws://rtc.pr2-remotelab.com:9090");
+  
+    node.setOnClose(function(e) {
+	ros_debug("Disconnected or Can't Connect.");
+    });
+
+    node.setOnError(function(e) {
+	ros_debug("Unknown error!");
+    });
+
+      node.setOnOpen(function(e) {
+	  ros_debug("Connected to " + node.url + ".");
+
+	startGettingLists(node);
+    });
+
+  }
+
+  /*
+  *#######################
+  *     ON PAGE LOAD
+  *#######################
+  */
+  jQuery(document).ready( function() {
+
+    jQuery("#right_nav").tabs();
+    outerLayout = jQuery('body').layout({
+      west__size:     300
+    , east__size:     320
+    , south__size:    150  
+    // RESIZE Accordion widget when panes resize
+    , west__onresize:   function () { jQuery("#accordion_west").accordion("resize"); }
+    , east__onresize:   function () { jQuery("#accordion_east").accordion("resize"); }
+    , center__onresize_end:     function () { resizeCanvas(); }
+    });
+
+    $westAccordion = jQuery("#accordion_west").accordion({
+      fillSpace:  true
+    });
+
+    // ACCORDION - in the West pane
+    $eastAccordion = jQuery("#accordion_east").accordion({
+      fillSpace:  true
+    });
+
+    // THEME SWITCHER
+    addThemeSwitcher('.ui-layout-north',{ top: '12px', right: '20px' });
+    // if a new theme is applied, it could change the height of some content,
+    // so call resizeAll to 'correct' any header/footer heights affected
+    // NOTE: this is only necessary because we are changing CSS *AFTER LOADING* using themeSwitcher
+    setTimeout( resizeWidgets, 1000 ); /* allow time for browser to re-render with new theme */
+
+    ros_debug("ok setup");
+
+  });  
+  </script>
+  </head>
+  <body onload="start()">
+
+  <div class="ui-layout-west" style="display: none;">
+  <div class="ui-widget-header">Robot Topics</div>
+  <div class="ui-layout-content">
+	  <div id="accordion_west" class="basic">
+	      <div id="nav_element_topics" title="Topics" class="nav_element" > </div>
+
+	  </div>
+  </div>
+  </div>
+
+<div class="ui-layout-north ui-widget-content" style="display: none;">
+
+  <div id="navigation" class="ui-tabs ui-widget ui-widget-content ui-corner-all" >
+    <ul id="right_nav" class="ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all">
+      <li><img src="../../wviz/img/remote_lab_header_small.jpg" height="50"/> </li>
+      <!-- Image is from Willow Garages flickr stream and created by Josh Ellingson link: www.flickr.com/photos/willowgarage/4788324112/in/set-72157624356302313/ -->
+    </ul>
+  </div>
+</div>
+
+<div class="ui-layout-center" style="display: none;">
+  <div class="ui-widget-header">Robot Services</div>
+  <div class="ui-layout-content">
+	      <div id="nav_element_services" title="Services" class="nav_element" > </div>
+  </div>
+</div>
+
+</body>
+</html>

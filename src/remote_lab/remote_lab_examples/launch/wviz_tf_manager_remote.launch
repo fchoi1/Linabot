@@ -1,0 +1,6 @@
+<launch>
+  <node name="wviz_tf_manager" pkg="wviz_tf_manager" type="wviz_tf_manager" respawn="false" output="screen" machine="arwen_elec">
+	<param name="translational_update_distance" type="double" value=".01"/> 
+        <!-- param name="angular_update_distance" type="double" value=".05"/ -->   
+  </node>
+</launch>

@@ -1,0 +1,10 @@
+<package>
+  <description brief="ping">A node to measure roundtrip delays.</description>
+  <author>Benjamin Pitzer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/ping</url>
+  <depend package="roscpp"/>
+  <depend package="std_msgs"/>
+  <depend package="roslib"/>
+</package>

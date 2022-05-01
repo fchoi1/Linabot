@@ -1,0 +1,188 @@
+/*********************************************************************
+ *
+ * Software License Agreement (BSD License)
+ *
+ *  Copyright (c) 2010, Robert Bosch LLC.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *   * Neither the name of the Robert Bosch nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ *  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ *  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ *  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ *
+ *********************************************************************/
+/* remove padding and scrolling from elements that contain an Accordion OR a content-div */
+.ui-layout-center , /* has content-div */
+.ui-layout-west , /* has content-div ... */
+.ui-layout-west .ui-layout-content , /* content-div has Accordion */
+.ui-layout-east , /* has content-div ... */
+.ui-layout-east .ui-layout-content { /* content-div has Accordion */
+  padding: 0;
+  overflow: hidden;
+}
+.ui-layout-center P.ui-layout-content {
+  line-height:  1.4em;
+  margin:     0; /* remove top/bottom margins from <P> used as content-div */
+}
+h3, h4 { /* Headers & Footer in Center & East panes */
+  font-size:    1.1em;
+  background:   #EEF;
+  border:     1px solid #BBB;
+  border-width: 0 0 1px;
+  padding:    7px 10px;
+  margin:     0;
+}
+.ui-layout-east h4 { /* Footer in East-pane */
+  font-size:    0.9em;
+  font-weight:  normal;
+  border-width: 1px 0 0;
+}
+
+#nav_element_circuits, #nav_element_wireless, #nav_element_motors, #nav_element_battery, #nav_element_status, #nav_element_charge, #nav_element_bridge {
+  cursor: pointer;
+}
+
+.toolbar { 
+  font-size: 11px; 
+  font-family: arial,tahoma,helvetica,sans-serif;
+  background-image: url('images/toolbar/tb-bg.gif');
+}
+
+#nav_element_wireless {
+  width:26px; 
+  height: 22px; 
+  left: 0.5em; 
+  position: relative;
+}
+
+#nav_element_motors, #nav_element_circuits {
+  padding-top: 0; 
+  padding-bottom: 0;
+}
+
+#nav_element_motors .tool {
+  background: url(images/motor-states.png);
+  position: absolute; 
+  width: 30px; 
+  height: 30px; 
+  top: 0px;
+}
+
+#nav_element_motors {
+  width: 30px;
+  height: 30px;
+  top: 1px;
+}
+
+#nav_element_circuits {
+  width: 30px;
+  height: 30px;
+  top: 1px;
+}
+
+#nav_element_circuits .tool div {
+  position: absolute; 
+  width: 30px; 
+  height: 30px; 
+  top: 0px;
+}
+
+#nav_element_circuits .tool #circuit_0 {
+  background: url(images/circuit-states.png);
+  background-position: 0 0;
+  left: 0px;
+}
+
+#nav_element_circuits .tool #circuit_1 {
+  background: url(images/circuit-states.png);
+  background-position: 30 0;
+  left: 30px;
+}
+
+#nav_element_circuits .tool #circuit_2 {
+  background: url(images/circuit-states.png);
+  background-position: 60 0;
+  left: 60px;
+}
+
+#nav_element_circuits .tool #runstop {
+  background: url(images/runstop-states.png);
+}
+
+#nav_element_charge .tool {
+  background: url(images/charge-states.png);
+  background-position: 0px 24px;
+  position: absolute; 
+  width: 12px; 
+  height: 20px; 
+  top: 6;
+  right: 0;
+}
+
+.menu_pane {
+  position: absolute; 
+  top: 26; 
+  width: 300px; 
+  right: 0; 
+  border: 1px solid #fe9; 
+  background: #666; 
+  padding: 5px;
+  display: none;
+  font-weight: normal;
+}
+
+.menu_pane a { 
+  float: right;
+}
+
+.powerboard_runstop_false { 
+  color: #f44;
+}
+
+.powerboard_runstop_unknown { 
+  color: #f44;
+}
+
+.powerboard_runstop_true { 
+  color: #4f4;
+}
+
+.powerboard_runstop_standby { 
+  color: #ff4;
+}
+
+.powerboard_runstop_stall { 
+  background-color: gray;
+}
+/* #vsw_add_selector { */
+/*   width: 700px; */
+/*   height: 350px; */
+/*   top: 1px; */
+/* } */
+.ui-dialog-titlebar-close {
+  visibility: hidden;
+}
+
+

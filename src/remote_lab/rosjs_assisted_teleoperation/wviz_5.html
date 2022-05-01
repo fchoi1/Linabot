@@ -1,0 +1,281 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="language" content="en" />
+  <title> Web Robot Controller</title>
+  <link rel="stylesheet" type="text/css" href="css/layout-default-latest.css" />
+  <link rel="stylesheet" type="text/css" href="css/themes/base/jquery.ui.all.css" />
+  <!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+  <link rel="stylesheet" type="text/css" href="css/remote_lab.css" />
+  <link rel="stylesheet" type="text/css" href="css/rightcontext.css" />
+
+  <!-- REQUIRED scripts for layout widget -->
+  <script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/jquery-ui-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/jquery.layout-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/themeswitchertool.js"></script>
+  <script type="text/javascript" src="js/jquery/debug.js"></script>
+
+  <script type="text/javascript" src="js/RGraph/RGraph.common.core.js" ></script>
+  <script type="text/javascript" src="js/RGraph/RGraph.common.context.js" ></script>
+  <script type="text/javascript" src="js/RGraph/RGraph.line.js" ></script>
+	<script type="text/javascript" src="js/spidergl/spidergl.js"></script>
+	<script type="text/javascript" src="js/joystick.js"></script>
+	<script type="text/javascript" src="js/keyboard.js"></script>
+	<script type="text/javascript" src="js/util.js"></script>
+
+	<!-- REQUIRED scripts for ROS -->
+	<script type="text/javascript" src="js/ros/ros.js"></script>
+	<script type="text/javascript" src="js/ros/b64codec/b64codec.js"></script>
+ 	<script type="text/javascript" src="js/ros/binaryparser/binaryparser.js"></script>
+	<script type="text/javascript" src="js/ros/common.js"></script>
+	<script type="text/javascript" src="js/ros/visualization/visualization.js"></script>
+  <script type="text/javascript" src="js/ros/remotelabwidgets/remotelabwidgets.js"></script>
+
+  <script type="text/javascript">
+
+  // rosjs variables
+//  var rosjs_server = "arwen";
+// var mjpeg_server = "merry";
+
+  var rosjs_server = "rosjs.pr2-remotelab.com";
+  var mjpeg_server = "mjpeg.pr2-remotelab.com";
+
+
+  // widget variables
+  var widgetmanager;
+  
+  // layout variables
+  var outerLayout;
+  var southLayout;
+
+  // robot model
+  var robot_model;
+  var rosNode;
+
+  var surveyOn;
+
+  function log(msg) {
+    jQuery('#log').append(msg.toString() + '<br/>');
+    $('#log').attr({ scrollTop: $('#log').attr('scrollHeight')});
+  }
+
+  function init()
+  {
+    log("in init");
+//    if(!checkURL())
+//      return;
+
+    surveyOn = false;
+
+    ready();
+    createInitDialog("initdialog",10000);
+
+    rosNode = new ros.NodeHandle("ws://" + rosjs_server + ":9090");
+
+    rosNode.setOnClose(function(e) {
+        log("Disconnected or Can't Connect.");
+        closeDialog("initdialog");
+        createFaileDialog("faildialog");
+        });
+
+    rosNode.setOnError(function(e) {
+        log("Unknown error!");
+        closeDialog("initdialog");
+        createFaileDialog("faildialog");
+        });
+
+    rosNode.setOnOpen(function(e) {
+        log("Connected to " + rosNode.url + ".");
+        setRobot(rosNode,responseFunc, true);
+        });
+  }
+
+  function responseFunc(msg)
+  {
+    if(msg.ret == false)
+    {
+      createRobotInUse("robotdialog");
+    }
+    else {
+      nodeLauncher(rosNode, "gripper_marker_control.launch");
+      //bindKeyboardEvent(rosNode);
+      initializeWidgets(rosNode);
+      subscribeResultMessage(rosNode,"surveydialog");
+    }
+  }
+
+  function updateSnapshot()
+  {
+    var camera = document.getElementById('CAMERA_IMAGE');
+    camera.src = "http://"+mjpeg_server+":8080/snapshot?topic=/wide_stereo/left/image_color?quality=30?width="+camera.width+"?height="+camera.height;
+    log('Snapshot updated');
+  }
+
+  function initializeWidgets(rosNode)
+  {
+    // initialize webgl canvas
+    var tf = new ros.tf.TransformListener(rosNode,"/tf");           
+    var vm = new ros.visualization.VisualizationManager("OVERLAY_CANVAS");    
+    vm.initialize(rosNode, tf);
+    vm.scene_viewer.fixed_frame = "/odom_combined";
+    
+    widgetmanager = new ros.widgets.WidgetManager(rosNode);
+    widgetmanager.setupWidgets();
+
+    // body layout
+    createBodyLayout(rosNode,vm,tf);
+    
+    // footer layout
+  }
+
+  function createBodyLayout(rosNode, vm,tf)
+  {
+    var robot_model = vm.addRobotModel("resources/pr2_description/pr2_urdf.xml",0.5);
+    var camera_overlay = new ros.visualization.CameraOverlay(vm, "/wide_stereo_optical_frame", "/wide_stereo/left/camera_info"); 
+     vm.addInteractiveMarker("/gripper_control/update_web");
+//    vm.addPointCloud2("/pclrgb");
+    createRightDiv(rosNode,vm,tf,robot_model);
+    updateAllTransforms(rosNode);
+    setInterval(function() {updateAllTransforms(rosNode);}, 1000);
+  }
+
+  function createRightDiv(rosNode,v,tf,robot) {
+    // right side puppet
+      createVideoWidget("REMOTE_LAB1","/remote_lab_cam1/image_raw");
+      createVideoWidget("REMOTE_LAB2","/remote_lab_cam0/image_raw");
+  }
+
+  function updateAllTransforms(rosNode)
+  {
+    srv = rosNode.serviceClient("/wviz_tf_manager/publish_all_transforms");
+    srv.call(ros.json([]), ros.nop);
+  }
+
+  function createVideoWidget(div_id,topic)
+  {
+    var video_width = 320;
+    var video_height = 240;
+    var video_quality = 60;
+    var video_update_interval = 100;
+    var img_url= "http://" + mjpeg_server + ":8080/snapshot?topic="+topic+"?width="+video_width+"?height="+video_height+"?quality="+video_quality;
+    var video = new ros.widgets.SnapshotWidget(div_id, video_width, video_height, img_url, video_update_interval);
+  }
+
+  function resizeCanvas() {
+    var state = outerLayout.state;
+    var canvas = document.getElementById('OVERLAY_CANVAS');
+    var camera = document.getElementById('CAMERA_IMAGE');
+    var eastOffset = state.east.isClosed?0:state.east.size;
+    
+    camera.width = state.container.innerWidth - eastOffset;
+    camera.height = state.container.innerHeight - state.south.size -10;
+    canvas.width = camera.width;
+    canvas.height = camera.height;
+
+    camera.src = "http://"+mjpeg_server+":8080/snapshot?topic=/wide_stereo/left/image_color?quality=30?width="+camera.width+"?height="+camera.height;
+
+  }
+
+  function resizeWidgets() {
+    // do nothing for now
+  }
+
+
+  /*
+   *################
+      On Page Load
+    ################
+   */
+
+  function ready() {
+    jQuery("#right_nav").tabs();
+
+    // create the outer layout
+    outerLayout = jQuery('body').layout({
+        east__size: 500
+      , south__size:  150
+      , west__onresize: function() { jQuery("#accordion_west").accordion("resize");}
+      , east__onresize: function() { jQuery("#accordion_east").accordion("resize");}
+    , center__onresize_end: function () { resizeCanvas(); }
+      });
+
+    southLayout = jQuery('div.outer-south').layout({
+        west__paneSelector:   ".inner-west"
+      , center__paneSelector: ".inner-center"
+      , west__size: 500
+      });
+
+    setTimeout(resizeWidgets, 1000);
+
+    log("ok setup");
+
+    jQuery("a").each(function() {
+      var path = document.location.href;
+      if (path.substr(path.length-1)=="#") path = path.substr(0,path.length-1);
+      if (this.href.substr(this.href.length-1) == "#") this.href = path +"#";
+    });
+
+    resizeCanvas();
+
+    }
+
+  </script>
+
+</head>
+<body onload="init()">
+<style>
+  #feedback { font-size: 1.2em; }
+<!--  #selectable .ui-selecting { background: #feca40;  }-->
+    #selectable .ui-selecting { background: #f39814; color: white;  }
+  #selectable .ui-selected { background: #f39814; color: white; }
+  #selectable { list-style-type: none; margin: 3px; padding: 0; width: 60%; }
+  #selectable li { margin: 3px; padding: 0.4em; font-size: 1.2em; height: 18px; }
+
+</style>
+
+<!-- Body -->
+<!-- Left body -->
+<div class="ui-layout-center" style="display: none;">
+  <div class="ui-widget-header">
+    Overlay Snapshot
+  </div>
+  <div class="ui-layout-content ui-widget-content" style="margin:0;padding:0;background-white;overflow:hidden">
+    <center>
+    <img id="CAMERA_IMAGE" src="http://"+mjpeg_server+":8080/snapshot?topic=/wide_stereo/left/image_color?quality=30?width=800?height=600" alt="" />
+    <div style="position: absolute; top: 0px; left: 0px; width: 100%"> 
+    <canvas id="OVERLAY_CANVAS" width="800" height="600" style="border: 0px solid black"> </canvas>
+    </center>
+  </div>
+</div>
+
+<!-- Right body -->
+<div class="ui-layout-east" style="display:none;">
+  <div class="ui-widget-header">
+    Live Camera
+  </div>
+  <div class="ui-layout-content ui-widget-content">
+    <center>
+    <div id="REMOTE_LAB1"></div>
+    <div id="REMOTE_LAB2"></div>
+    <input type="button" value="Update Snapshot" onclick="updateSnapshot()"></input>
+    </center>
+  </div>
+</div>
+  
+<!-- Footer -->
+<div class="ui-layout-south outer-south" style="font-size:1.0em;">
+  <div id="log" class="inner-west" style="font-size: 1.0em;"></br/></div>
+  <div id="img" class="inner-center"></div>
+</div>
+
+<div id="initdialog"></div>
+<div id="faildialog"></div>
+<div id="surveydialog"></div>
+<div id="robotdialog"></div>
+
+</body>
+</html>
+
+

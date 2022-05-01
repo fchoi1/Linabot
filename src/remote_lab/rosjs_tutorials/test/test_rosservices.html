@@ -1,0 +1,465 @@
+
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Services Running on Alan</title> 
+
+<!-- REQUIRED scripts for layout widget --> 
+<script type="text/javascript" src="../../wviz/js/jquery/jquery-latest.js"></script> 
+<script type="text/javascript" src="../../wviz/js/jquery/jquery-ui-latest.js"></script>
+<script type="text/javascript" src="../../wviz/js/jquery/jquery.layout-latest.js"></script>
+
+<!-- REQUIRED scripts for ROS --> 
+<script type="text/javascript" src="../../wviz/js/ros/ros.js"></script> 
+<script type="text/javascript" src="../../wviz/js/ros/common.js"></script> 
+<script type="text/javascript" src="../../wviz/js/ros/remotelabwidgets/remotelabwidgets.js"></script> 
+
+<script> 
+function start()
+{
+  var node = new ros.NodeHandle("ws://rtc.pr2-remotelab.com:9090");
+
+  node.setOnClose(function(e) {
+    document.write("Alan is unavailable.");
+    ros_debug("Disconnected or Can't Connect.");
+  });
+
+  node.setOnError(function(e) {
+    ros_debug("Unknown error!");
+  });
+
+  node.setOnOpen(function(e) {   
+    ros_debug("Connected to " + node.url + ".");
+    //document.write("Connected to Alan, retrieving data...");
+    node.getServices(printServices);
+  });  
+}
+
+function printAllServices(serviceList){
+
+  for (var s in serviceList){
+//    ros_debug(s);
+//    ros_debug(serviceList[s]);
+    service = serviceList[s];
+    document.write(s+":"+serviceList[s] + "<br>");
+  }  
+}
+function $(id) { return document.getElementById(id); }
+
+// Handle of the textarea
+var wall;
+
+// All sensor related services
+var sensorServices=new Array();
+
+// Service types under sensor services
+// These will be combined into sensorServices array
+var cameraServices=new Array();
+var laserServices=new Array();
+var accimuServices=new Array();
+
+// All actuator related services
+var actuatorServices=new Array();
+
+// Service types under actuator services
+// These will be combined into actuatorServices array
+var bodyServices=new Array();
+var headServices=new Array();
+
+// Array that keeps service types together
+var serviceTypes=new Array();
+
+// Coordinate systems related services (tf etc.)
+var coordinatesysServices=new Array();
+
+// Network related services
+var networkServices=new Array();
+
+// Power and battery related services
+var powerServices=new Array();
+
+// Misc. services that don't fit in other groups
+var otherServices=new Array();
+
+// Array that keeps all services
+var allServices=new Array();
+
+// Array that keeps keywords for grouping the services
+var kw=new Array();
+
+// Array that keeps the options of the type select
+var typeOpts=new Array();
+
+function printServices(serviceList){
+  wall=$("wall");
+  var service;
+  sensorServices.push("Sensor related services:");
+  actuatorServices.push("Actuator related services:");
+  coordinatesysServices.push("Coordinate systems related services:");
+  networkServices.push("Network related services:");
+  powerServices.push("Power related services:");
+  otherServices.push("Other services:");
+
+  cameraServices.push("Services related to cameras:");
+  laserServices.push("Services related to laser range finders and scanners:");
+  accimuServices.push("Services related to accelerometer and IMU:");
+  bodyServices.push("Services related to body of the robot:");
+  headServices.push("Services related to head of the robot:");
+
+  // Keywords for camera related services
+  kw[0] = /\/wide_stereo/i;
+  kw[1] = /\/narrow_stereo/i;
+  kw[2] = /\/r_forearm_cam/i;
+  kw[3] = /\/l_forearm_cam/i;
+  kw[4] = /\/camera_synchronizer_node/i;
+  kw[5]=  /\/prosilica/i;
+  kw[6] = /\/head_camera/i;
+  kw[7] = /\/projector_trigger/i;
+  kw[8] = /\/mjpeg_server/i;
+
+  // Keywords for laser or scanner related services
+  kw[9] = /\/laser_tilt_controller/i;
+  kw[10] = /\/tilt_hokuyo_node/i;
+  kw[11] = /\/base_hokuyo_node/i;
+
+  // Keywords for accelerometer, imu related services
+  kw[12] = /\/imu_node/i;
+
+  // Keywords for body related services  
+  kw[13] = /\/torso_controller/i;
+  kw[14] = /\/l_gripper_controller/i;
+  kw[15] = /\/r_gripper_controller/i;
+  kw[16] = /\/pr2_controller_manager/i;
+
+  // Keywords for head related services
+  kw[17] = /\/head_traj_controller/i;
+  kw[18] = /\/throttle_head_traj_controller_state/i;
+
+  // Keywords for coordinate system, tf related services
+  kw[19] = /tf/i;
+  kw[20] = /\/robot_pose_ekf/i;
+
+  // Keywords for network related services
+  kw[21] = /broadcaster/i;
+  kw[22] = /server/i;
+  kw[23] = /\/network/i;
+  kw[24] = /\/pr2_ethetCAT/i;
+  kw[25] = /\/app/i;
+  
+  // Keywords for power related services
+  kw[26] = /\/power/i;
+
+  // Keywords for other services
+  kw[27] = /\/diag_agg/i;
+  kw[28] = /\/rosout/i;
+  kw[29] = /\/logger/i;
+  kw[30] = /\/task/i;
+  kw[31] = /\/wviz_scene_manager/i;
+  kw[32] = /\/joy/i;
+  kw[33] = /\/pr2_run/i;
+  kw[34] = /\/pr2_mechanism/i;
+  kw[35] = /\/robot_state/i;
+  kw[36] = /\/status/i;
+  kw[37] = /\/realtime/i;
+
+  
+  for (var t in serviceList){
+    service = serviceList[t];
+    for(var k in kw){
+
+      if(8>=k && k>=0){
+        if(service.match(kw[k]) != null){
+          cameraServices.push(service);
+          sensorServices.push(service);
+        }
+      }
+      if(11>=k && k>=9){
+        if(service.match(kw[k]) != null){
+          laserServices.push(service);
+          sensorServices.push(service);
+        }
+      }
+      if(k==12){
+        if(service.match(kw[k]) != null){
+          accimuServices.push(service);
+          sensorServices.push(service);
+        }
+      }
+      if(16>=k && k>=13){
+        if(service.match(kw[k]) != null){
+          bodyServices.push(service);
+          actuatorServices.push(service);
+        }
+      }
+      if(18>=k && k>=17){
+        if(service.match(kw[k]) != null){
+          headServices.push(service);
+          actuatorServices.push(service);
+        }
+      }
+      if(20>=k && k>=19){
+        if(service.match(kw[k]) != null){
+          coordinatesysServices.push(service);
+        }
+      }
+      if(25>=k && k>=21){
+        if(service.match(kw[k]) != null){
+          networkServices.push(service);
+        }
+      }
+      if(k==26){
+        if(service.match(kw[k]) != null){
+          powerServices.push(service);
+        }
+      }
+      if(37>=k && k>=27){
+        if(service.match(kw[k]) != null){
+          otherServices.push(service);
+        }
+      }
+    }
+  }
+
+  serviceTypes.push(cameraServices);
+  serviceTypes.push(laserServices);
+  serviceTypes.push(accimuServices);
+  serviceTypes.push(bodyServices);
+  serviceTypes.push(headServices);
+
+  allServices.push(sensorServices);
+  allServices.push(actuatorServices);
+  allServices.push(coordinatesysServices);
+  allServices.push(networkServices);
+  allServices.push(powerServices);
+  allServices.push(otherServices);
+
+  for(var g in allServices){
+    for(var t in allServices[g]){
+      //document.write(t+":"+allServices[g][t] + "<br>");
+      if(t != 0){
+        wall.value += t+":"+allServices[g][t] + "\n";
+      }
+      else{
+        wall.value += allServices[g][t] + "\n";
+      }
+    }
+  }
+
+  for(var i=0;i<6;i++){
+    typeOpts.push(document.createElement("option"));
+  }
+  
+  typeOpts[0].text="All";
+  typeOpts[0].value="0"
+  typeOpts[0].selected=true;
+  typeOpts[0].defaultSelected=true;
+
+  typeOpts[1].text="Cameras";
+  typeOpts[1].value="1";
+
+  typeOpts[2].text="Laser";
+  typeOpts[2].value="2";
+
+  typeOpts[3].text="Acc/IMU";
+  typeOpts[3].value="3";
+
+  typeOpts[4].text="Body";
+  typeOpts[4].value="4";
+
+  typeOpts[5].text="Head";
+  typeOpts[5].value="5";
+
+}
+
+
+// This function filers the results by service group
+function selectgroup ( which, num, win )
+{
+  wall.value="";
+  var choice = $("groupmenu");
+  var n = choice.options[choice.selectedIndex].value;
+
+  if(n==6){
+    var i=0;
+    var f=5;
+  }
+  else{
+    var i=n;
+    var f=n;
+  }
+
+  for(var g=i;g<=f;g++){
+    for(var t in allServices[g]){
+      if(t != 0){
+        wall.value += t+": "+allServices[g][t] + "\n";
+      }
+      else{
+        wall.value += allServices[g][t] + "\n" + "\n";
+      }
+    } 
+  }
+
+  var tm = $("typemenu");
+  // Clean the type drop down menu
+  var i=0;
+  while( 0 < tm.length){
+    tm.remove(i);
+  }
+
+  typeOpts[0].selected=true;
+  typeOpts[0].defaultSelected=true;
+  typeOpts[0].value="0";
+  // Add the first option by default.
+  tm.add(typeOpts[0],0);
+
+  switch(choice.selectedIndex)
+  {
+  // All types
+  case 0:
+    for( var i=1; i < 6; i++){
+      typeOpts[i].value = i.toString();
+      tm.add(typeOpts[i],0);
+    }
+    break;
+  // Sensor types
+  case 1:
+    for( var i=1; i < 4; i++){
+      typeOpts[i].value = i.toString();
+      tm.add(typeOpts[i],0);
+    }
+    break;    
+  // Actuator types
+  case 2:
+    for( var i=4; i < 6; i++){
+      typeOpts[i].value = i.toString();
+      tm.add(typeOpts[i],0);
+    }
+    break;
+  }
+}
+
+
+// This function filters the results by service type
+function selecttype ( which, num, win )
+{
+  wall.value="";
+  var typeval = $("typemenu").options[ $("typemenu").selectedIndex].value;
+  var groupval = $("groupmenu").options[$("groupmenu").selectedIndex].value;
+
+  var filteredResults=new Array();
+
+  if(typeval=="0"){
+    switch(Number(groupval))
+    {
+    case 0:
+      filteredResults.push(sensorServices);
+      break;
+    case 1:
+      filteredResults.push(actuatorServices);
+      break;
+    case 2:
+      filteredResults.push(coordinatesysServices);
+      break;
+    case 3:
+      filteredResults.push(networkServices);
+      break;
+    case 4:
+      filteredResults.push(powerServices);
+      break;
+    case 5:
+      filteredResults.push(otherServices);
+      break;
+    }
+  }
+  else{
+    filteredResults.push(serviceTypes[Number(typeval)-1]);
+  }
+  
+  for(t in filteredResults[0]){
+    if( t != 0){
+      wall.value += t + ": " + filteredResults[0][t] + "\n";
+    }
+    else{
+      wall.value += filteredResults[0][t] + "\n" + "\n";
+    }
+  }
+}
+
+function findservice(which,e){
+  var key;
+
+  if(e.which){
+    key = e.which;
+  }
+  
+  var searchexp = new RegExp(document.filterservices.servicesearch.value.toString());
+  var dummyservice;
+
+  if(key == 13){
+    wall.value="";
+    for(var g in allServices){
+      for(var t in allServices[g]){
+        dummyservice = allServices[g][t].toString();
+        if(dummyservice.match(searchexp) != null){
+           wall.value += dummyservice + "\n";
+        }
+      }
+    }
+    if(wall.value==""){
+      wall.value="No matching service was found.";
+    }
+  }
+}
+
+</script>
+
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+
+</head> 
+
+<body onload="start()"> 
+<!--h4>One row and three columns:</h4-->
+<table border="0">
+<tr>
+  <td valign="top">
+
+  <form name="filterservices">
+  Select a group of services <br>
+  <select id="groupmenu" onchange="selectgroup(this, 1, false)">
+  <option value="6">All</option>
+  <option value="0">Sensors</option>
+  <option value="1">Actuators</option>
+  <option value="2">Coordinate Systems</option>
+  <option value="3">Network</option>
+  <option value="4">Power</option>
+  <option value="5">Other</option>
+  </select> <br><br>
+ 
+  Select a type of service <br>
+  <select id="typemenu" onchange="selecttype(this, 1, false)">
+  <option>All</option>
+  </select> <br><br>
+
+  Search:
+  <input type="text" size="10" name="servicesearch" onkeypress="findservice(this,event)"/><br />
+  <!--This second input is to resolve the browser quirk that happens with one input field. If the user presses enter, the form is reloaded in case of one input field. To solve it, we have this second invisible input field.-->
+  <input type="text" name="resolvequirk" value="Fix browser bug" style="display:none" />
+  </form>
+
+  </td>
+  <td>
+  <form>
+  <textarea id="wall" readonly rows="30" cols="100" style="resize: none;">
+  </textarea>
+  </form>
+  </td>
+ 
+</tr>
+</table>
+</body>
+</html> 

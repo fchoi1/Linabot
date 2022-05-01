@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content='width=device-width, initial-scale=1.0, minimum-scale=0.50, maximum-scale=1.0, user-scalable=0' name='viewport' />
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"/>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css"/>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+<script src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/mjpegcanvasjs/current/mjpegcanvas.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/EaselJS/current/easeljs.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<!--script type="text/javascript" src="http://cdn.robotwebtools.org/ros2djs/current/ros2d.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/nav2djs/current/nav2d.min.js"></script-->
+<script type="text/javascript" src="http://linabot:8888/js_files/ROS2D.js"></script>
+<script type="text/javascript" src="http://linabot:8888/js_files/NAV2D.js"></script>
+
+<script type="text/javascript">
+
+  //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+  //> BOTH OF THESE IPs COULD BE MADE FINAL IF IPs WERE STATIC BUT THEY ARE CURRENTLY DYNAMIC ON LINAMAR NETWORK CHANGE THEM AS NECCESSARY <
+  //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  //IP of the computer which is hosting the Ros Master
+  var hostIP = '10.193.39.144';
+  //IP for the raspberry Pi in order to get the video stream data
+  var piIP = '10.193.38.19';
+
+  var waypoints = [];
+  var ip = [];
+  var pos = [];
+  var navPoints = [];
+  var index = 0;
+  var routing = false;
+
+  //This IP is a temporary value for the robot arms or machines the linabot may want to talk to if it is given a waypoint command
+  var roboIP = -1;
+  var viewer;
+  var nav;
+
+  //connect to Ros
+  var ros = new ROSLIB.Ros({
+    url : 'ws://'+hostIP+':9090'
+  });
+
+  /**
+   *runs on start to setup one time connections
+   *@param none
+   *@return null
+   */
+  function init() {
+   
+   //polls to see the users device resolution and scale the page accordingly based on a 4:3 ratio
+   var w = window.innerHeight * 4.0/3.0;
+   var h = window.innerWidth* 3.0/4.0;
+   Math.round(w);
+   Math.round(h);
+   w = Math.min(window.innerWidth, w);
+   h = Math.min(window.innerHeight, h);
+
+   //debugging
+   console.log(w + " " + h + " " + Math.min(window.innerWidth, Math.round(window.innerHeight * 4.0/3.0)));
+
+   //populate the div element with the navigation map
+   viewer = new ROS2D.Viewer({
+      divID : 'nav',
+      width : w,
+      height : h
+    });
+
+    // Setup the nav client.
+    nav = new NAV2D.OccupancyGridClientNav({
+      ros : ros,
+      rootObject : viewer.scene,
+      viewer : viewer,
+      serverName : '/move_base',
+      withOrientation : true
+    });
+
+    //populate the div element with the
+    var mjpegViewer = new MJPEGCANVAS.Viewer({
+      divID : 'mjpeg',
+      host : piIP,
+      width : w,
+      height : h,
+      topic : '/camera/image_raw'
+    });
+
+    //loops through data provided by server to load 
+    {% for i in waypoints %}    
+      waypoints.push("{{i[0]}}");
+      ip.push("{{i[1]}}");
+      pos.push(parseFloat("{{i[2]}}"));
+      pos.push(parseFloat("{{i[3]}}"));
+      pos.push(parseFloat("{{i[4]}}"));
+      navPoints.push(new ROS2D.WaypointImage({
+                       size : 0.75,
+                       image : "http://linabot:8888/images/Linapoint.png",
+                       pulse : false,
+                       title : "{{i[0]}}",
+                       ip : "{{i[1]}}",
+                       pose : {
+                         x : parseFloat("{{i[2]}}"),
+                         y : parseFloat("{{i[3]}}"),
+                         zr : parseFloat("{{i[4]}}")
+                       }
+                     }));                              
+    {% endfor %}
+
+    //debugging
+    console.log(waypoints);
+    console.log(navPoints);
+    
+    //This creates the dropdown elements based of the list of waypoints from the server, go to the function to see the magic
+    makeOption(waypoints);
+  }
+
+    //values to hold the robots current X and Y and Z axis Rotational position as a quaternion value
+    var x, y, zr;
+
+    //This topic is where the robots positions is posted
+    var listener = new ROSLIB.Topic({
+      ros : ros,
+      name : '/amcl_pose',
+      messageType : 'geometry_msgs/PoseWithCovarianceStamped'
+    });
+    listener.subscribe(function(message) {
+      //THIS DISPLAYS TEXT OF POSITION
+      var a = document.getElementById('log');
+      x = message.pose.pose.position.x;
+      y = message.pose.pose.position.y;
+      zr = message.pose.pose.orientation.z;
+      a.textContent = new Date() + ' : Received message on ' + listener.name + ': ' + x + ", " + y + ", " + zr;
+    });
+
+    var goal = new ROSLIB.Topic({
+      ros : ros,
+      name : '/move_base/result',
+      messageType : 'move_base_msgs/MoveBaseResult'
+    });
+    var roboComm = new ROSLIB.Topic({
+      ros : ros,
+      name : '/robocom',
+      messageType : 'ros_socket/robocom'
+    });
+    goal.subscribe(function(message) {
+      //THIS DISPLAYS TEXT OF GOAL
+      result = message.status.text;
+      resNum = message.status.status;
+      if (roboIP != -1){
+        if (resNum == 3){
+          var string = new ROSLIB.Message({
+              robot_status : resNum,
+              client_ip : roboIP
+          });
+          roboComm.publish(string);
+          roboIP = -1;
+        }
+        /*if ([2, 3, 4, 5, 6, 8, 9].indexOf(resNum) > -1) { 
+          roboIP = -1;  
+        }*/
+        //ip = -1 if waypoint cancelled or non waypoint selected, failure, lost
+        //ip = robo if waypoint cancels regular or just waypoint
+      }
+      var a = document.getElementById('status');
+      a.textContent = resNum + " " + result;
+      //delete waypoint
+    });
+    
+    //THIS handles the click function of the waypoint button
+    $(document).ready(function () {
+      //I think this is only attaching to values instantiated under the del class at this moment
+      $("#saveWaypoint").click(function() {
+
+        var title = prompt("What would you like to name this waypoint?");
+
+        while(title == ""){  
+	  title = prompt("Enter a Waypoint title.");
+	}
+        if(title != null && title != ""){
+          $.ajax({
+            url: '/setWaypoint',
+            data: {
+              title : title,
+              pos : x + "\n" + y + "\n" + zr + "\n"
+            },
+            type: 'POST',
+            success: function(response) {
+              if(response.error){
+                alert(response.error);
+              } else if (response.title == title) {
+                
+                console.log(x +"\n" +y+"\n"+ zr + "\n" + index);
+                waypoints.push(title);
+                ip.push("-1");
+                pos.push(x);
+                pos.push(y);
+                pos.push(zr);
+                navPoints.push(new ROS2D.WaypointImage({
+                  size : 0.75,
+                  image : "http://linabot:8888/images/Linapoint.png",
+                  pulse : false,
+                  title : title,
+                  ip : "-1",
+                  pose : {
+                    x : x,
+                    y : y,
+                    zr : zr
+                  }
+                }));
+                makeOption([title]);  
+                alert("Waypoint Created!");
+                
+              } else{
+                alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+              }
+
+            },
+            error: function(error) {
+              if(error){
+                  alert(error);
+              } else {
+                  alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+              }
+            }
+          });
+        }   
+     
+        $(this).button('reset');
+      });
+
+
+      $("#setRoutine").click(function() { 
+        alert("Select the waypoints in the order you would like the routine to proceed");
+        //set a new override on click function to waypoint buttons
+        //toggle to remove override
+        if (routing == false){
+          routing = true;
+        }else{
+          routing = false;
+        }
+
+        $(this).button('reset');
+      });
+    });
+
+    function makeOption(waypoints){
+      
+      var first = document.getElementById("content");
+      for (i in waypoints){
+        var option = document.createElement("a");
+        option.id = index;
+        option.classList.add('go');
+        var del = document.createElement("BUTTON");
+        del.classList.add('del');
+        var addIP = document.createElement("BUTTON");
+        addIP.classList.add('ip');
+        var addIPText = document.createTextNode("ADD IP");
+        var delText = document.createTextNode("DELETE");
+        var optText = document.createTextNode(waypoints[i]);
+        option.appendChild(optText);
+        option.appendChild(document.createElement("br"));
+        del.appendChild(delText);
+        addIP.appendChild(addIPText);
+        option.appendChild(del);  
+        option.appendChild(addIP);   
+        first.appendChild(option);
+        viewer.addObject(navPoints[index]);
+        console.log(index);
+        index++;
+      }
+      $(".del").off("click");
+      $(".del").click(function() {
+          if(confirm("Are you sure you would like to delete waypoint: " + this.innerText)){
+            var p = this.parentElement; 
+            var pid = p.id;
+            console.log(pid);
+          //put in confirmation to delete
+          
+            $.ajax({
+              url: '/delWaypoint',
+              data: {
+                rem : pid
+              },
+              type: 'POST',
+              success: function(response) {
+                if(response.error){
+                  alert(response.error);
+                } else if (response.rem == "HI"/*p.value*/) {//returns deleted element title for ensuring no error ocurred
+                  console.log(pid);
+                  for(i = (parseInt(pid) + 1); i < index; i++){
+                    console.log(i);
+                    console.log(waypoints[i]);
+                    document.getElementById(i).id = parseInt(i)-1;
+                  }                
+                  $(p).slideUp(function() { $(p).remove(); });
+                  waypoints.splice(pid, 1);
+                  viewer.removeObject(navPoints[pid]);
+                  navPoints.splice(pid, 1);
+                  pos.splice(pid*3, 3);
+                  index--;
+                } else{
+                  alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+                }
+
+              },
+              error: function(error) {
+                if(error){
+                    alert(error);
+                } else {
+                    alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+                }
+              }
+            });
+        }
+        $(this).button('reset');     
+      });
+      $(".go").off("click");
+      $(".go").click(function() {
+          var pid = parseInt(this.id);
+          if(pid > -1){
+            console.log(pos[pid*3] +" fish "+ pos[pid*3+1]);
+            var goal = new ROSLIB.Pose({
+              position : {
+                x : pos[pid*3],
+                y : pos[pid*3+1],
+                z : 0
+              },
+              orientation : pos[pid*3+2]
+            });            
+            roboIP = ip[pid];
+            
+            nav.navigator.sendGoal(goal);
+          }else{
+            nav.navigator.stopGoal();    
+          } 
+          
+          $(this).button('reset');     
+      });
+      $(".ip").off("click");
+      $(".ip").click(function() {
+        if(routing == false){
+          var p = this.parentElement; 
+          var pid = p.id;
+          var inp = prompt("Enter the IP for this waypoint.(Leave blank to clear)", ip[pid]);
+          if(inp != null){
+            if ((inp == "" || inp =="-1") && ip[pid] != "-1") {
+              ip[pid] = "-1";
+            } else {
+              if(inp == ""){
+                inp = "-1"
+              }
+              $.ajax({
+                url: '/setIP',
+                data: {
+                  ind : pid,
+                  ip : inp
+                },
+                type: 'POST',
+                success: function(response) {
+                  if(response.error){
+                    alert(response.error);
+                  } else if (response.ip == inp) {
+                    ip[pid] = inp;
+                    alert("IP Updated!");
+                  } else{
+                    alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+                  }
+                },
+                error: function(error) {
+                  if(error){
+                      alert(error);
+                  } else {
+                      alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+                  }
+                }
+              });
+            }
+          }
+        }
+          $(this).button('reset');     
+      });
+    }    
+    
+</script>
+  
+<style>
+  body {
+    background-color: black;
+  }
+  .dropbtn {
+    background-color: gray;
+    color: orange;
+    font-weight: bold;
+    padding: 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+  }
+
+  .dropdown {
+    padding: 0px;
+    position: relative;
+    display: inline-block;
+  }
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: gray;
+    min-width: 170px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    border: none;
+    border-radius: 10px;
+  }
+
+  .dropdown-content a {
+    color: black;
+    width: 170px;
+    overflow: hidden;
+    word-wrap: break-word;
+    background-color: gray;
+    text-align: center;
+    padding: 10px 10px;
+    text-decoration: none;
+    display: block;
+    border: none;
+    border-radius: 10px;
+  }
+  .selected {
+    background-color: green;
+  }
+  .dropdown-content a button{
+    background-color: gray;
+    color: orange;
+    font-weight: bold;
+    padding: 0px 5px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    float: right;
+    width: 75px;
+  }
+
+  .dropdown-content a:hover {
+    background-color: #f1f1f1;
+    cursor: pointer;
+  }
+  .dropdown-content a:hover button {
+    background-color: #f1f1f1;
+  }
+
+  .dropdown:hover .dropdown-content {
+    display: block;
+  }
+
+
+  button:hover {
+    background-color: #f1f1f1;
+    cursor: pointer;
+  }
+  .dropdown-content a button:hover {
+    background-color: gray;
+  }
+  #log {
+    color: white;
+  }
+  #status {
+    color: white;
+    font-size:25px;
+  }
+  .stop {
+    text-align: center;
+    font-family: "Arial Black", Gadget, sans-serif;
+    font-weight: bold;
+    font-size: 20px;
+    border: none;
+    background-color: red;
+    position: fixed;
+    right: 15px;
+    top: 15px;
+    width:75px;
+    height: 60px;
+    color: black;
+    border-radius: 30px;
+  }
+</style>
+</head>
+
+
+<!-- this loads the -->
+<body onload="init()">
+  <div style="width: 1400*2px; height: 480*2px;">
+    <div style="display: inline-block;" id="mjpeg"></div>  
+    <div style="display: inline-block;" id="nav"></div>
+  </div>
+
+  <div id="log"></div>
+  
+  <div id="dropdown" class="dropdown">
+    <button class="dropbtn">Waypoints</button>
+    <div id="content" class="dropdown-content">
+    </div>
+  </div>
+
+  <button class="dropbtn" type="button" id="saveWaypoint">Set Waypoint</button>
+  <button class="dropbtn" type="button" id="SetRoutine">Set Routine</button>
+  <button class="go stop" type="button" id="-1">STOP!</button>
+  <div id="status"></div>
+  <script>    
+  </script>
+</body>
+</html>

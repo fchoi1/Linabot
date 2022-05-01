@@ -1,0 +1,7 @@
+INDEX
+
+./test: Sample test scripts to test different components of the robot and visualization system, can be found in this directory. A great way to start understanding how everything works.
+
+./js: spidergl and jquery scripts that you need to customize the interface and view 3D images.
+
+./: Sample html files with lots of comments that gives you a flavor of tutorial.

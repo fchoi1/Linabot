@@ -1,0 +1,30 @@
+<launch>
+
+
+	<node name="$(anon dynparam)" pkg="dynamic_reconfigure" type="dynparam" args="set_from_parameters narrow_stereo_left">
+    	<param name="auto_exposure" type="bool" value="False" />
+    	<param name="auto_gain" type="bool" value="False" />
+    	<param name="exposure" type="double" value=".01" />
+	<param name="gain" type="int" value="25" />
+    	<param name="auto_exposure_alternate" type="bool" value="False" />
+ 	<param name="auto_gain_alternate" type="bool" value="False" />	
+	<param name="exposure_alternate" type="double" value=".008"/>
+	<param name="gain_alternate" type="int" value="16"/>
+	</node>
+
+	<node name="$(anon dynparam)" pkg="dynamic_reconfigure" type="dynparam" args="set_from_parameters narrow_stereo_right">
+    	<param name="auto_exposure" type="bool" value="False" />
+    	<param name="auto_gain" type="bool" value="False" />
+    	<param name="exposure" type="double" value=".01" />
+	<param name="gain" type="int" value="25" />
+    	<param name="auto_exposure_alternate" type="bool" value="False" />
+ 	<param name="auto_gain_alternate" type="bool" value="False" />	
+	<param name="exposure_alternate" type="double" value=".008"/>
+	<param name="gain_alternate" type="int" value="16"/>
+    </node>
+
+    
+
+
+	
+</launch>

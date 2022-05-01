@@ -1,0 +1,62 @@
+
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Robot Viewer</title> 
+
+<script src="resources/spidergl.js"> </script> 
+<script src="ros/ros.js"> </script> 
+<script src="ros/math/math.js"> </script> 
+<script src="ros/roslib/roslib.js"> </script> 
+<script src="ros/pcl/pcl.js"> </script> 
+<script src="ros/urdf/urdf.js"> </script>  
+<script src="ros/webgl/webgl.js"> </script> 
+<script src="ros/tf/tf.js"> </script> 
+
+<script type="text/javascript" src="resources/jquery.min.js"></script>
+<script type="text/javascript" src="resources/json2.js"></script>
+<script type="text/javascript" src="resources/ros.min.js"></script>
+ 
+<script> 
+var vm = new ros.webgl.VisualizationManager("SGL_CANVAS1");
+
+function start()
+{ 
+  var node = new ros.NodeHandle("ws://localhost:9090");
+  node.setOnClose(function(e) {
+    ros_debug("Disconnected or Can't Connect.");
+  });
+
+  node.setOnError(function(e) {
+    ros_debug("Unknown error!");
+  });
+
+  node.setOnOpen(function(e) {   
+    ros_debug("Connected to " + node.url + ".");
+    var tf = new ros.tf.Transformer(node, "/tf"); 
+    vm.initialize(node, tf);
+    grid = vm.addGrid("/odom_combined", 3.0, 1.0);
+    grid.setPickable(true);
+  });
+  
+  window.onresize = function() {
+    var c = document.getElementById('SGL_CANVAS1');
+    c.width  = window.innerWidth;
+    c.height = window.innerHeight;
+  }
+  window.onresize(); 
+}
+</script> 
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+</head> 
+
+<body onload="start()" style="margin:0;padding:0;background-color:white;overflow:hidden"> 
+<canvas id="SGL_CANVAS1" width="1000" height="600"></canvas> 
+</body> 
+ 
+</html> 

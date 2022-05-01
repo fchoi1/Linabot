@@ -1,0 +1,3 @@
+<launch>
+  <node name="throttle_head_traj_controller_state" pkg="topic_tools" type="throttle" args="messages /head_traj_controller/state 1.0 /head_traj_controller_state_throttle" />
+</launch>

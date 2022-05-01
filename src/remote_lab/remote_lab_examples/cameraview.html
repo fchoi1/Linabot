@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="language" content="en" />
+	<title>Pick and Place Demo</title>
+	<link rel="stylesheet" type="text/css" href="css/layout-default-latest.css" />
+	<link rel="stylesheet" type="text/css" href="css/themes/base/jquery.ui.all.css" />
+	<!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+	<link rel="stylesheet" type="text/css" href="css/simple_style.css" />
+
+
+	<script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+  	<script type="text/javascript" src="js/jquery/jquery-ui-latest.js"></script>
+  	<script type="text/javascript" src="js/jquery/jquery.layout-latest.js"></script>
+  	<script type="text/javascript" src="js/jquery/themeswitchertool.js"></script>
+  	<script type="text/javascript" src="js/jquery/debug.js"></script>
+  	
+
+	<script type="text/javascript" src="js/ros/ros.js"></script>
+	<script type="text/javascript" src="js/ros/common.js"></script>
+	<script type="text/javascript" src="js/ros/visualization/visualization.js"></script>
+	<script type="text/javascript" src="js/ros/remotelabwidgets/remotelabwidgets.js"></script>
+  	<script type="text/javascript">
+ 	
+ 	var rosbridge_server="arwen";
+ 	var mjpeg_server = "merry";
+ 	 var widgetmanager;
+ 	 var node;
+ 	
+ 	function createSnapshotWidget(div_id, selector_div_id, initial_topic) {
+      var video_width = 640;
+      var video_height = 480;
+      var video_quality = 30;
+      var video_update_interval = 100;
+      var img_url= "http://" + mjpeg_server + ":8080/snapshot?topic="+initial_topic+"?width="+video_width+"?height="+video_height+"?quality="+video_quality;
+      var video = new ros.widgets.SnapshotWidget(div_id, video_width, video_height, img_url, video_update_interval);
+    
+      jQuery("#"+selector_div_id).change(function(){
+      var topic=jQuery("#"+selector_div_id).val();
+      var img_url= "http://" + mjpeg_server + ":8080/snapshot?topic="+ topic +"?width="+video_width+"?height="+video_height+"?quality="+video_quality;
+      video.uri = img_url;
+    });
+  }
+ 	
+  function start(){
+    node = new ros.NodeHandle("ws://" + rosbridge_server + ":9090");
+    node.setOnClose(function(e) {
+	console.log("Disconnected or Can't Connect.");
+    });
+
+    node.setOnError(function(e) {
+	console.log("Unknown error!");
+    });
+
+      node.setOnOpen(function(e) {
+	  console.log("Connected to " + node.url + ".");
+	  widgetmanager = new ros.widgets.WidgetManager(node);
+      widgetmanager.setupWidgets();
+      createSnapshotWidget("image_display1", "camera_stream_selector1","/remote_lab_cam0/image_raw");
+      createSnapshotWidget("image_display2", "camera_stream_selector2","/remote_lab_cam3/image_raw?invert");
+   
+  });
+   
+  } 
+  </script>
+</head>
+<body onload="start()">
+
+<style>
+  #feedback { font-size: 4em; }
+  #selectable .ui-selecting { background: #FECA40; }
+  #selectable .ui-selected { background: #F39814; color: white; }
+  #selectable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+  #selectable li { margin: 3px; padding: 0.4em; font-size: 1.2em; height: 18px; }
+
+</style>
+
+ <center>
+     <div> 
+       <div id="nav_element_motors" title="Motors" class="nav_element"  objtype=MotorsMonitorWidget topic="/dashboard_agg"></div>
+	   <div id="nav_element_circuits" title="Circuits" class="nav_element"  objtype=CircuitMonitorWidget topic="/dashboard_agg"></div>
+	   <div id="nav_element_charge" class="nav_element" objtype=ChargeMonitor topic="c"></div>
+	   <div id="nav_element_battery" title="Battery" class="nav_element"  objtype=BatteryMonitorWidget topic="/dashboard_agg" style="white-space:nowrap; font-weight: normal"></div>
+	   <div id="nav_element_wireless" title="Wireless" class="nav_element"  objtype=WirelessSignalMonitor topic="/dashboard_agg"></div>
+	  
+	   <div id="nav_element_runstop" title="Runstop" class="nav_element"  objtype=RunStopWidget></div>
+	    </div><br></br>
+ 
+	   <table border="0">
+		<tr>
+		<td><center><select id="camera_stream_selector1">
+	          <optgroup label="Remote Cameras">
+             <option selected="select" value="/remote_lab_cam0/image_raw"> /remote_lab_cam0 </option>
+             <option value="/remote_lab_cam1/image_raw"> /remote_lab_cam1 </option>
+             <option value="/remote_lab_cam2/image_raw"> /remote_lab_cam2 </option>
+             <option value="/remote_lab_cam3/image_raw?invert"> /remote_lab_cam3 </option>
+	          </optgroup>
+	          <optgroup label="Robot's Cameras">
+	           <option value="/wide_stereo/right/image_rect_color">/wide_stereo/right</option>
+	           <option value="/narrow_stereo/left/image_rect_color">/narrow_stereo/left</option>
+	           <option value="/wide_stereo/left/image_rect_color">/wide_stereo/left</option>
+	           <option value="/r_forearm_cam/image_rect_color">/r_forearm_cam</option>
+	           <option value="/l_forearm_cam/image_rect_color">/l_forearm_cam</option>
+	          </optgroup>
+	    </select></center></td>
+		<td><center><select id="camera_stream_selector2">
+	          <optgroup label="Remote Cameras">
+             <option value="/remote_lab_cam0/image_raw?invert"> /remote_lab_cam0 </option>
+             <option value="/remote_lab_cam1/image_raw"> /remote_lab_cam1 </option>
+             <option value="/remote_lab_cam2/image_raw"> /remote_lab_cam2 </option>
+             <option selected="select" value="/remote_lab_cam3/image_raw?invert"> /remote_lab_cam3 </option>
+	          </optgroup>
+	          <optgroup label="Robot's Cameras">
+	           <option value="/wide_stereo/right/image_rect_color">/wide_stereo/right</option>
+	           <option value="/narrow_stereo/left/image_rect_color">/narrow_stereo/left</option>
+	           <option value="/wide_stereo/left/image_rect_color">/wide_stereo/left</option>
+	           <option value="/r_forearm_cam/image_rect_color">/r_forearm_cam</option>
+	           <option value="/l_forearm_cam/image_rect_color">/l_forearm_cam</option>
+	          </optgroup>
+	    </select></center></td>
+		</tr>
+		<tr>
+		<td><div id="image_display1"></div></td>
+		<td><div id="image_display2"></div></td>
+		</tr>
+		</table>
+	    
+	     <br></br>
+
+
+
+
+</center>
+</body>
+</html>

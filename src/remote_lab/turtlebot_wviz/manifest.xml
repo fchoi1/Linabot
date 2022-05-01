@@ -1,0 +1,17 @@
+<package>
+  <description brief="turtlebot_wviz">
+
+    turtlebot_wviz
+
+  </description>
+  <author>Sarah Osentoski</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/tutlebot_wviz</url>
+  <depend package="rosjs_common"/>
+  <depend package="rosjs_visualization"/>
+  <depend package="rosbridge_server"/>
+  <depend package="rosapi"/>
+</package>
+
+

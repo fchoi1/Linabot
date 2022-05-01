@@ -1,0 +1,16 @@
+<launch>
+  <include file="$(find wviz)/launch/stereo_camera_parameters.launch"/>
+  <include file="$(find wviz)/launch/static_transforms.launch"/>
+  <include file="$(find wviz)/launch/mjpeg_server_remote.launch"/>
+  <include file="$(find wviz)/launch/remote_lab_cameras.launch"/>
+  <include file="$(find wviz)/launch/tf_throttle.launch"/>
+  <include file="$(find wviz)/launch/head_state_throttle.launch"/>
+
+  <include file="$(find pointcloud_snapshot_service)/launch/pcl_snapshot_service.launch"/>
+  <include file="$(find wviz)/launch/wviz_scene_manager.launch"/>
+  <include file="$(find wviz)/launch/wviz_tf_manager.launch"/>
+  
+ <include file="$(find wviz)/launch/rosbridge_remote.launch"/>
+ <include file="$(find pr2_interactive_manipulation)/launch/pr2_interactive_manipulation_robot.launch"/>-->
+
+</launch>

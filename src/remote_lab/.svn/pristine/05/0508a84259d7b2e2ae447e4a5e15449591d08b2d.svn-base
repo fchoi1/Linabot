@@ -1,0 +1,330 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="language" content="en" />
+  <title> Web Robot Puppeteer controller</title>
+  <link rel="stylesheet" type="text/css" href="css/layout-default-latest.css" />
+  <link rel="stylesheet" type="text/css" href="css/themes/base/jquery.ui.all.css" />
+  <!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+  <link rel="stylesheet" type="text/css" href="css/remote_lab.css" />
+  <link rel="stylesheet" type="text/css" href="css/rightcontext.css" />
+
+  <!-- REQUIRED scripts for layout widget -->
+  <script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/jquery-ui-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/jquery.layout-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/themeswitchertool.js"></script>
+  <script type="text/javascript" src="js/jquery/debug.js"></script>
+  <script>
+
+  function concatObject(obj) {
+    var str='';
+
+    if(typeof(obj) == "string")
+      return obj;
+
+    for(prop in obj) {
+      str += prop + " : ";
+
+//      if (typeof(obj[prop]) == "object") 
+//        str += concatObject(obj[prop]) + "\n";
+//      else
+       str += "[ " + obj[prop] + "] ";   
+    }  
+    return(str);
+  }
+  </script>
+
+
+  <script type="text/javascript" src="js/RGraph/RGraph.common.core.js" ></script>
+  <script type="text/javascript" src="js/RGraph/RGraph.common.context.js" ></script>
+  <script type="text/javascript" src="js/RGraph/RGraph.line.js" ></script>
+	<script type="text/javascript" src="js/spidergl/spidergl.js"></script>
+	<script type="text/javascript" src="js/joystick.js"></script>
+
+	<!-- REQUIRED scripts for ROS -->
+	<script type="text/javascript" src="js/ros/ros.js"></script>
+	<script type="text/javascript" src="js/ros/common.js"></script>
+	<script type="text/javascript" src="js/ros/visualization/visualization.js"></script>
+  <script type="text/javascript" src="js/ros/remotelabwidgets/remotelabwidgets.js"></script>
+
+  <script type="text/javascript">
+
+  // rosjs variables
+  var rosjs_server = "localhost";
+  var mjpeg_server = "localhost";
+
+  // widget variables
+  var widgetmanager;
+  
+  // layout variables
+  var outerLayout;
+  var southLayout;
+
+  // robot model
+  var robot_model;
+
+
+  function log(msg) {
+    jQuery('#log').append(msg.toString() + '<br/>');
+    $('#log').attr({ scrollTop: $('#log').attr('scrollHeight')});
+  }
+
+  function init()
+  {
+    var rosNode = new ros.NodeHandle("ws://" + rosjs_server + ":9090");
+    
+    rosNode.setOnClose(function(e) {
+        log("Disconncted or Can't Connect.");
+        });
+
+    rosNode.setOnError(function(e) {
+        log("Unknown error!");
+        });
+
+    rosNode.setOnOpen(function(e) {
+        log("Connected to " + rosNode.url + ".");
+        initializeWidgets(rosNode);
+        });
+  }
+
+  function initializeWidgets(rosNode)
+  {
+    // initialize webgl canvas
+    var tf = new ros.tf.TransformListener(rosNode,"/tf_changes");          
+    var vm = new ros.visualization.VisualizationManager("WEBGL_CANVAS");    
+    vm.initialize(rosNode, tf);
+    vm.scene_viewer.fixed_frame = "/odom_combined";
+    
+    widgetmanager = new ros.widgets.WidgetManager(rosNode);
+    widgetmanager.setupWidgets();
+
+    // header layout
+    createHeaderLayout(rosNode,vm);
+
+    // body layout
+    createBodyLayout(rosNode,vm);
+    
+    // footer layout
+    createFooterLayout(rosNode,vm);
+  }
+
+  function createHeaderLayout(rosNode,vm)
+  {
+    // initialize header nav_elements
+    var fpsobj = document.getElementById("nav_element_fps");
+    if(fpsobj) {
+      var fps_widget = new ros.widgets.FPSCounterWidget(fpsobj);
+      vm.scene_viewer.setOnDraw(function (gl,xform) {
+          fps_widget.update();
+        });
+    }
+
+    var bitrateobj= document.getElementById("nav_element_bitrate");
+    if(bitrateobj) {
+      var bitrate_widget = new ros.widgets.BitrateWidget(bitrateobj);
+      rosNode.setOnMessage(function (e) {
+          bitrate_widget.update(e.data.length * 8.0);
+          });
+    }
+  }
+
+  function createBodyLayout(rosNode, vm)
+  {
+    // Left side - webgl canvas
+    vm.addVisualizationScene("/scene");
+    vm.addGrid("/odom_combined",10.0,1.0);
+
+    robot_model = vm.addRobotModel("resources/pr2_description/pr2_urdf.xml");
+    robot_model.setPickable(false);
+    vm.addInteractiveMarker("/pr2_marker_control/update");
+//    var remotelab_model = vm.addRobotModel("resources/remote_lab_description/table_urdf.xml");
+//    remotelab_model.setLight(true);
+
+    updateAllTransforms(rosNode);
+    setInterval(function() {updateAllTransforms(rosNode);}, 10000);
+    
+    var marker_control_obj = document.getElementById("marker_control");
+    if(marker_control_obj) 
+    {
+      var marker_widget = new ros.widgets.Pr2_Marker_Control_Widget(rosNode,"marker_control",vm);
+    }
+  }
+
+  function createFooterLayout(rosNode,vm)
+  {
+    var bitrategraphobj = document.getElementById("bitrate_graph");
+    if(bitrategraphobj) {
+      var bitrate_graph_widget = new ros.widgets.BitrateGraphWidget(bitrategraphobj);
+      bitrate_graph_widget.setTopics(["/tf_changes","/dashboard_agg","/head_traj_controller_state_throttle"]);
+      bitrate_graph_widget.drawGraph();
+      rosNode.setOnMessage(function (e) {
+          bitrate_graph_widget.update(e);
+          });
+    }
+  }
+  
+  function addMarkerToScene(rosNode,marker_topic) {
+    srv = rosNode.serviceClient("/wviz_scene_manager/add_marker");
+    srv.call(ros.json([marker_topic]), ros.nop);
+  }
+
+  function updateAllTransforms(rosNode)
+  {
+    srv = rosNode.serviceClient("/wviz_tf_manager/publish_all_transforms");
+    srv.call(ros.json([]), ros.nop);
+  }
+
+  function createVideoWidget(div_id,topic)
+  {
+    var video_width = 320;
+    var video_height = 240;
+    var video_quality = 30;
+    var video_update_interval = 1000;
+    var img_url= "http://" + mjpeg_server + ":8080/?topic="+topic+"?width="+video_width+"?height="+video_height+"?quality="+video_quality;
+    var video = new ros.widgets.SnapshotWidget(div_id, video_width, video_height, img_url, video_update_interval);
+  }
+
+  function resizeCanvas() {
+    var state = outerLayout.state;
+    var left = document.getElementById('WEBGL_CANVAS');
+    var eastOffset = state.east.isClosed?0:state.east.size;
+    
+    left.width = state.container.innerWidth - eastOffset - 50;
+    left.height = state.container.innerHeight - state.south.size - state.north.size - 65;
+    
+//    right.width = eastOffset - 25;
+//    right.height = state.container.innerHeight - state.south.size - state.north.size - 50;
+  }
+
+  function resizeWidgets() {
+    // do nothing for now
+  }
+
+  /*
+   *################
+      On Page Load
+    ################
+   */
+
+  jQuery(document).ready( function() {
+    jQuery("#right_nav").tabs();
+
+    // create the outer layout
+    outerLayout = jQuery('body').layout({
+        east__size: 300
+      , south__size:  150
+      , west__onresize: function() { jQuery("#accordion_west").accordion("resize");}
+      , east__onresize: function() { jQuery("#accordion_east").accordion("resize");}
+    , center__onresize_end: function () { resizeCanvas(); }
+      });
+
+    southLayout = jQuery('div.outer-south').layout({
+        west__paneSelector:   ".inner-west"
+      , center__paneSelector: ".inner-center"
+      , east__paneSelector:   ".inner-east"
+      , west__size: 500
+      , east__size: 300
+      });
+
+    //addThemeSwitcher('.ui-layout-north',{ top:'12px',right:'20px'});
+    setTimeout(resizeWidgets, 1000);
+
+    log("ok setup");
+
+    jQuery("a").each(function() {
+      var path = document.location.href;
+      if (path.substr(path.length-1)=="#") path = path.substr(0,path.length-1);
+      if (this.href.substr(this.href.length-1) == "#") this.href = path +"#";
+    });
+
+    resizeCanvas();
+
+    });
+
+
+  </script>
+
+</head>
+<body onload="init()">
+<style>
+  #feedback { font-size: 1.2em; }
+<!--  #selectable .ui-selecting { background: #feca40;  }-->
+    #selectable .ui-selecting { background: #f39814; color: white;  }
+  #selectable .ui-selected { background: #f39814; color: white; }
+  #selectable { list-style-type: none; margin: 3px; padding: 0; width: 60%; }
+  #selectable li { margin: 3px; padding: 0.4em; font-size: 1.2em; height: 18px; }
+
+</style>
+
+<!-- Header -->
+<div class="ui-layout-north ui-widget-content" style="display:none;">
+
+  <div id="navigation" class="ui-tabs uiwidget ui-widget-content ui-corner-all">
+    <ul id="right_nav" class="ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all">
+      <li><img src="images/remote_lab_header_small.jpg" height="50"/> </li>
+      <li><div id="nav_element_motors" title="Mortors" class="nav_element" objtype=MotorsMonitorWidget topic="/dashboard_agg"></div></li>
+      <li><div id="nav_element_circuits" title="Circuits" class="nav_element" objtype=CircuitMonitorWidget topic="/dashboard_agg"></div></li>
+      <li><div id="nav_element_charge" title="Charge" class="nav_element" objtype=ChargeMonitor topic="c"></div></li>
+      <li><div id="nav_element_battery" title="Battery" class="nav_element" objtype=BatteryMonitorWidget topic="/dashboard_agg" style="white-space:nowrap; font-weight: normal"></div></li>
+      <li><div id="nav_element_wireless" title="Wireless" class="nav_element" objtype=WirelessSignalMonitor topic="/dashboard_agg"></div></li>
+      <li>
+        <div id="nav_element_fps" title="FPS" class="nav_element"></div>
+        <div id="nav_element_bitrate" title="ROSJS Bitrate" class="nav_element"></div>
+      </li>
+
+    </ul>
+  </div>
+</div>
+
+<!-- Body -->
+<!-- Left body -->
+<div class="ui-layout-center" style="display: none;">
+  <div class="ui-widget-header">
+    Visualization
+  </div>
+  <p class="ui-layout-content ui-widget-content">
+      <canvas id="WEBGL_CANVAS" width="800" height="490" style="border: 2px solid black"></canvas>
+  </p>
+</div>
+
+<!-- Right body -->
+<div class="ui-layout-east" style="display:none;">
+  <div class="ui-widget-header">
+    Pr2 Marker Control
+  </div>
+  <div class="ui-layout-content ui-widget-content">
+    <center>
+    <div id="marker_control"></div>
+    </center>
+  </div>
+</div>
+  
+<!-- Footer -->
+<div class="ui-layout-south outer-south" style="font-size:1.0em;">
+  <div id="log" class="inner-west" style="font-size: 1.0em;"></br/></div>
+  <div id="bitrate_graph" class="inner-center">
+    <div class="ui-widget-header">
+      Bitrate
+    </div>
+    <center>
+    <canvas id="bitrate_graph_canvas" width=380 height=100 >[No canvas support] </canvas>
+    </center>
+  </div>
+  <div class="inner-east">
+    <div class="inner-east ui-widget-header">
+      Ping
+    </div>
+    <div id="ping_graph" class="ui-layout-content" objtype=PingGraphWidget topic="/pong">
+      <center>
+      <canvas id="ping_graph_canvas" width=260 height=86 style="float: left">[No canvas support] </canvas>
+      </center>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+
+

@@ -1,0 +1,99 @@
+
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Robot Viewer</title> 
+
+<script src="resources/spidergl.js"> </script> 
+<script src="ros/ros.js"> </script> 
+<script src="ros/math/math.js"> </script> 
+<script src="ros/urdf/urdf.js"> </script>  
+<script src="ros/webgl/webgl.js"> </script> 
+<script src="ros/tf/tf.js"> </script> 
+
+<script type="text/javascript" src="resources/jquery.min.js"></script>
+<script type="text/javascript" src="resources/json2.js"></script>
+<script type="text/javascript" src="resources/ros.min.js"></script>
+ 
+<script> 
+var gSceneViewer = new ros.webgl.SceneViewer();
+var gTf = new ros.tf.Transformer();
+sglRegisterCanvas("SGL_CANVAS1", gSceneViewer, 10.0);
+
+function start()
+{
+  var gl = gSceneViewer.ui.gl;
+  var shader_manager = new ros.webgl.ShaderManager(gl);
+  
+  var map_model = new ros.webgl.MapModel(gl,shader_manager);
+  gSceneViewer.addNode(map_model);
+
+  var coord_model = new ros.webgl.CoordinateFrameModel(gl,shader_manager);
+  gSceneViewer.addNode(coord_model);
+  
+  function nop() {};
+  function json(obj) {return JSON.stringify(obj);};
+
+  function log(msg) {
+    $('#log').append(msg.toString() + '<br>');
+  };
+
+  function receiveTf(tf_msg) {
+    ros_debug('Got a tf message');
+    gTf.updateFromMessage(tf_msg.transforms);
+  };
+
+  function receiveMap(grid_map_msg) {
+    ros_debug('Got a grid map message');
+    map_model.updateFromMessage(grid_map_msg);
+  };
+
+  $(function() {
+    
+    //use rostopic pub stuff std_msgs/String "hi" -r 1
+    // to test the subscription
+    var ros = new ROS("ws://localhost:9090");
+
+    ros.setOnClose(function(e) {
+      log("Disconnected or Can't Connect.");
+    });
+    ros.setOnError(function(e) {
+      log("Unknown error!");
+    });
+
+    ros.setOnOpen(function(e) {   
+      var args = JSON.stringify(['/tf_throttled',0]);
+      //ros.callService('/rosjs/subscribe',args,function(msg)
+      //     {log('Subscribed to tf_throttled<br>');});
+      //ros.callService('/rosjs/subscribe',args,function(msg)
+      //    {log('Subscribed to tf_throttled<br>');});
+      //ros.addHandler('/tf_throttled',receiveTf);
+
+      args = JSON.stringify(['/map',0]);
+      ros.callService('/rosjs/subscribe',args,function(msg)
+         {log('Subscribed to map<br>');});
+      ros.callService('/rosjs/subscribe',args,function(msg)
+          {log('Subscribed to map<br>');});
+      ros.addHandler('/map',receiveMap);
+      
+    });
+  });
+  
+}
+
+</script> 
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+</head> 
+
+<body onload="start()"> 
+<canvas id="SGL_CANVAS1" width="1000" height="600"></canvas> 
+<div id="framerate"></div> 
+<div style="font-family: fixed-width; font-size: small;" id="log"></div>
+</body> 
+ 
+</html> 

@@ -1,0 +1,19 @@
+<package>
+  <description brief="robot_booking">
+
+     robot_booking
+
+  </description>
+  <author>Jihoon Lee</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/robot_booking</url>
+
+  <depend package="rospy"/>
+  <depend package="std_msgs"/>
+  <depend package="visualization_msgs"/>
+  <depend package="interactive_marker_client"/>
+
+</package>
+
+

@@ -1,0 +1,8 @@
+<launch>
+		
+	<node name="mjpeg_server" pkg="mjpeg_server" type="mjpeg_server" respawn="false" output="screen"></node>
+	<node name="wviz_tf_manager" pkg="wviz_tf_manager" type="wviz_tf_manager"  respawn="false" output="screen"></node>
+	<node name="turtlebot_marker_server" pkg="turtlebot_interactive_markers" type="turtlebot_marker_server"  respawn="false" output="screen"></node>
+	<node name="pcl_filter" pkg="pcl_filter" type="pcl_filter" respawn="false" output="screen"></node>
+
+</launch>

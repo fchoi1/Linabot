@@ -1,0 +1,81 @@
+<launch> 
+	<node name="map_server1" pkg="map_server" type="map_server" args="$(find map_server)/office.yaml"/>
+
+ <param name="/use_sim_time" value="false"/>
+
+
+ <node pkg="laser_scan_matcher" type="laser_scan_matcher_node" 
+        name="laser_scan_matcher_node" output="screen">
+        <param name="fixed_frame" value = "/map"/>
+        <param name="use_alpha_beta" value="true"/>
+        <param name="max_iterations" value="10"/>
+      </node>
+
+
+  <!-- Run the costmap node -->
+  <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
+
+  </node>
+dom
+	<!--- Run AMCL -->
+	<include file="$(find amcl)/examples/amcl_diff.launch" /> -->
+
+
+ <node pkg="navfn" type="navfn_node" respawn="false" name="planner" output="screen">c 
+        <param name="navfn_planner/visualize_potential" value="true" />
+        <param name="navfn_planner/allow_unknown" value="true" />
+        <param name="navfn_planner/planner_window_x" value="0.0" />
+        <param name="navfn_planner/planner_window_y" value="0.0" />
+        <param name="navfn_planner/default_tolerance" value="0.0" /> 
+
+ <!-- or global_planner -->
+     <!--<node pkg="global_planner" type="planner" respawn="false" name="planner" output="screen">
+        <param name="planner/old_navfn_behavior" value="false" />
+        <param name="planner/use_quadratic" value="true" />
+        <param name="planner/use_dijkstra" value="true" />
+        <param name="planner/use_grid_path" value="false" />
+        <param name="planner/allow_unknown" value="true" />
+        <param name="planner/planner_window_x" value="0.0" />
+        <param name="planner/planner_window_y" value="0.0" />
+        <param name="planner/default_tolerance" value="0.0" />
+        <param name="planner/publish_scale" value="100" /> -->
+	
+	<remap from="/planner/goal" to="/move_base_simple/goal" />
+       
+    </node>
+
+    <node pkg="rviz" type="rviz" name="rviz"/>
+
+	<!--- Run WAYPOINTS -->
+	<include file="$(find yocs_waypoints_navi)/launch/waypoints_navi.launch" />
+
+	<node name="movebase" pkg="move_base" type="move_base" respawn="false" output="screen">
+
+ 	<rosparam file="$(find navigation2d_example)/param/costmap_common_params.yaml" command="load" ns="global_costmap" />
+	<rosparam file="$(find navigation2d_example)/param/costmap_common_params.yaml" command="load" ns="local_costmap" />
+ 	<rosparam file="$(find navigation2d_example)/param/local_costmap_params.yaml" command="load" />
+	<rosparam file="$(find navigation2d_example)/param/global_costmap_params.yaml" command="load" />
+ 	<rosparam file="$(find navigation2d_example)/param/base_local_planner_params.yaml" command="load"/>
+	</node>
+
+	
+	<node pkg="tf" type="static_transform_publisher" name="world_map" args="0 0 0 0 0 0 world map 100" />
+
+	<node pkg="tf" type="static_transform_publisher" name="map_odom" args="0 0 0 0 0 0 map odom 100" />
+
+	<node pkg="tf" type="static_transform_publisher" name="odom_base_link" args="0 0 0 0 0 0 odom base_footprint 200" />
+
+	<node pkg="tf" type="static_transform_publisher" name="base_foorptint_movebase" args="0 0 0 0 0 0 base_footprint costmap_2d 200" />
+
+	<node pkg="tf" type="static_transform_publisher" name="movebase_baselink" args="0 0 0 0 0 0 costmap_2d base_link 100" />
+
+	<node pkg="tf" type="static_transform_publisher" name="base_link_scanmatcher_frame" args="0 0 0 0 0 0 base_link scanmatcher_frame 205" />
+
+	<node pkg="tf" type="static_transform_publisher" name="base_link_nav" args="0 0 0 0 0 0 base_link nav 130" />
+
+	<node pkg="tf" type="static_transform_publisher" name="base_link_base_frame" args="0 0 0 0 0 0 base_link base_frame 130" />
+
+	<node pkg="tf" type="static_transform_publisher" name="baselink_laser" args="0 0 0 0 0 0 base_link laser 200" />
+
+
+</launch>

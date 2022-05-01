@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtm\
+l11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="language" content="en" />
+<title>Turtlesim Key Control</title>
+
+<!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+<link rel="stylesheet" type="text/css" href="simple_style.css" />
+
+<script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+<script type="text/javascript" src="js/ros/ros.js"></script>
+<script type="text/javascript" src="js/ros/common.js"></script>
+
+
+<script type="text/javascript">
+     
+	  // rosjs variables
+	  rosjs_server="localhost";	
+	  mjpeg_server="localhost";
+
+	function handleinput(id){
+	  this.id=id;
+	  this.velocity={};
+	  this.velocity.linear=0;
+	  this.velocity.angular=0;
+
+	  if(this.id=="up"){
+	        this.velocity.linear=2;
+	     }
+	     else if(this.id=="down"){
+	        this.velocity.linear=-2;
+	     }
+	     else if(this.id=="left"){
+	        this.velocity.angular=-2;
+	     }
+	     else{
+	        this.velocity.angular=2;
+             }
+	  	    this.rosNode=that.rosNode;
+            that=this;
+
+	  return interval=setInterval(function(){
+	      console.log('publishing');
+	      that.rosNode.publish('/turtle1/command_velocity', 'turtlesim/Velocity',  ros.json(that.velocity));
+	    },100);	
+
+	  };
+
+	function start()
+	  {
+
+	  touch=('ontouchstart' in document.documentElement) ?true: false;
+
+	  console.log("ws://" + rosjs_server + ":9090");
+	  var rosNode = new ros.NodeHandle("ws://" + rosjs_server + ":9090");
+
+	  rosNode.setOnClose(function(e) {
+          console.log("Disconncted or Can't Connect.");
+          });
+
+	  rosNode.setOnError(function(e) {
+          console.log("Unknown error!");
+          });
+
+	  rosNode.setOnOpen(function(e) {
+          console.log("Connected to " + rosNode.url + ".");
+	  
+	  this.rosNode=rosNode;
+	  //reserve topic 
+	  this.rosNode.publish('/turtle1/command_velocity', 'turtlesim/Velocity',  ros.json({}));
+	  that=this;
+	  
+	  
+	  if(touch){
+	     $('.arrow').bind('touchstart',  function(){
+	      console.log('touchstart');
+	      console.log(this.id);
+	      this.interval=handleinput(this.id);
+	      
+	      $('.arrow').bind('touchend', function(){     
+	        console.log('touchend');
+	        console.log(that.interval);
+	        clearInterval(that.interval);
+	       });
+	     });
+	  }
+	  else{
+	    $('.arrow').mousedown( function(){
+	      console.log('mousedown');
+	      this.interval=handleinput(this.id);
+	      
+	      document.onmouseup=function(){     
+	        console.log('mouseup');
+	        console.log(that.interval);
+	        clearInterval(that.interval);
+	       } 
+	     });
+	    }
+
+          });
+
+	}
+
+
+  </script>
+</head>
+<body onload="start()">
+
+	<meta name="viewport"
+		content="width=device-width, height=device-height,  initial-scale=1">
+
+		<center> 
+		<table>
+			<tr>
+				<td></td>
+				<td><button type="button" id="up" class="arrow">forward
+				</td>
+
+				<td></td>
+			</tr>
+			<tr>
+				<td><button type="button" id="right" class="arrow">left</button>
+				</td>
+				<td></td>
+				<td><button type="button" id="left" class="arrow">right</button>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><button type="button" id="down" class="arrow">
+						<center>back</center>
+					</button>
+				</td>
+				<td></td>
+			</tr>
+			</center>
+</body>
+</html>

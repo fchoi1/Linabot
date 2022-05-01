@@ -1,0 +1,15 @@
+<package>
+  <description brief="rosjs_visualization">
+    rosjs common.
+  </description>
+  <author>Benjamin Pitzer and Bener Suay</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosjs_visualization</url>
+  <export>
+	<rosdoc config="rosdoc.yaml"/>
+  </export>
+  <depend package="rosjs_common"/>
+</package>
+
+

@@ -1,0 +1,17 @@
+<stack>
+  <description brief="bosch_web_visualization">
+    A stack that provides necessary javascript libraries and helper nodes, to visualize a robot (or a simulator) over the web.
+  </description>
+  <author>Maintained by Benjamin Pitzer, Sarah Osentoski and Bener Suay</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/bosch_web_visualization</url>
+  <depend stack="ros_comm" /> 
+  <depend stack="common_msgs" /> 
+  <depend stack="std_msgs" /> 
+  <depend stack="geometry" /> 
+  <depend stack="ros" /> 
+  <depend stack="perception_pcl" />
+  <depend stack="rosbridge_suite" />
+  <depend stack="mjpeg_server" />
+</stack>

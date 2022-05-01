@@ -1,0 +1,191 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="language" content="en" />
+    
+    <title>Wviz V05</title>
+    
+    <link rel="stylesheet" type="text/css" href="css/layout-default-latest.css" />
+    <link rel="stylesheet" type="text/css" href="css/themes/base/jquery.ui.all.css" />
+    <!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+    <link rel="stylesheet" type="text/css" href="css/remote_lab.css" />
+    <link rel="stylesheet" type="text/css" href="css/rightcontext.css" />
+
+    <!-- REQUIRED scripts for layout widget -->
+    <script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+    <script type="text/javascript" src="js/jquery/jquery-ui-latest.js"></script>
+    <script type="text/javascript" src="js/jquery/jquery.layout-latest.js"></script>
+    <script type="text/javascript" src="js/jquery/debug.js"></script>
+    <script type="text/javascript" src="js/spidergl/spidergl.js"></script>
+
+    <!-- REQUIRED scripts for NEW ROS.JS -->
+    <script type="text/javascript" src="js/ros/new_core/example/eventemitter2.js"></script>
+    <script type="text/javascript" src="js/ros/new_core/ros.js"></script>
+    
+    <!-- REQUIRED scripts for ROS -->
+    <!-- THE FOLLOWING IS REMOVED FOR USING THE NEW ROS.JS-->
+    <script type="text/javascript" src="js/ros/common.js"></script>
+    <script type="text/javascript" src="js/ros/binaryparser/binary_decoder.js"></script> <!-- THIS IS FOR USING POINTCLOUD2 -->
+
+    <script type="text/javascript" src="js/ros/visualization/visualization.js"></script>
+    <script type="text/javascript" src="js/ros/visualization/visualization_widgets/visualization_widgets.js"></script>
+
+    <script type="text/javascript">    
+            
+      // This is our gateway to rosbridge
+      var node;
+      var cw;
+
+      // Connect to rosbridge
+      function start(){
+
+      // Let's make the canvas and the control panel full screen
+      fullScreen();
+      
+      $(window).bind("resize", function(){
+      // Let's bind the event so that if / when the user changes the window size 
+      // our canvas and the control panel still stay full screen
+      fullScreen();
+      });
+      
+      // Get a ros node handle and try to connect
+      // We will use this node to communicate with ros master
+      cw = new ros.widgets.ConnectionWidget(setupVisualization,reconnect); 
+      }; // End of function start()
+
+      function fullScreen(){
+      canvas = document.getElementById("WEBGL_CANVAS");
+      cp = document.getElementById("controlPanel");
+      canvas.width = $(window).width()*0.98;
+      canvas.height = $(window).height()*0.8;
+      cp.style.width = canvas.width+"px";
+      };
+
+      // This function will be called automatically after the node
+      // is connected to rosmaster
+      function setupVisualization(){
+
+      // This function is called on success
+      node = cw.node;
+      
+      // 1. Subscribe to tf_changes
+      // tfs are expensive to subscribe to. We only need to listen the changes anyway.
+      tf = new ros.tf.TransformListener(node, "/tf_changes");
+
+      // make wviz_tf_manager publish all transforms now
+      // tf_changes publishes only when a transformation is changed
+      // Even if nothing has changed, we would like to see all tfs.
+      updateAllTransforms(node);
+
+      // Set a periodic call to update tfs.
+      setInterval(function() {updateAllTransforms(node); }, 10000);
+      
+      // 2. Get an instance of visualization manager
+      // Visualization manager manages the scene nodes (i.e. every object we visualize)
+      var vm = new ros.visualization.VisualizationManager("WEBGL_CANVAS");
+
+      // 3. Initialize the visualization manager.
+      vm.initialize(node, tf);
+      
+      // 4. Let's get the handle of the vis_control div we created in body
+      var visualizationcontrolobj = document.getElementById("vis_control");
+      if (visualizationcontrolobj) {
+      
+      // 5. Pass the div in visualization control panel 
+      // so that it knows where to put its button
+      var visualization_control_widget=new ros.widgets.VisControlPanel(visualizationcontrolobj);
+      // 6. Set the control panel's visualization manager
+      visualization_control_widget.setVM(vm);
+      }
+
+      function updateAllTransforms(node) {
+      //old stuff
+      //srv = node.serviceClient("/wviz_tf_manager/publish_all_transforms");
+      //srv.call(ros.json([]), ros.nop);
+
+      //new stuff
+      var tfManagerClient = new node.Service({
+      name        : "/wviz_tf_manager/publish_all_transforms",
+      serviceType : "wviz_tf_manager/PublishAllTransforms"
+      });
+
+      var request = new node.ServiceRequest({});
+      
+      tfManagerClient.callService(request, function(result) {});
+      
+      }
+      };
+
+      function reconnect() {
+
+      // If the connection failed at the very beginning, try to reconnect
+      // Otherwise ask the user to refresh the page
+      if(cw.status == 'init'){
+
+      var connectionWidgetHtml = cw.getHtml("connection");
+      $(connectionWidgetHtml).dialog({
+      open: function(event, ui) {
+      // saveID and cancelID are widget's buttons' ids.
+      $('#'+cw.saveID).click(function(e){
+        console.log("CW Clicked on save");
+        cw.onSave();
+      $('#'+cw.name+'_dialog').dialog('close');
+      });
+      
+      $('#'+cw.cancelID).click(function(e){
+        console.log("Clicked on cancel");
+        cw.onCancel();
+        $('#'+cw.name+'_dialog').dialog('close');
+      });
+
+      },
+      beforeClose: function(event,ui) {
+        cw.onClose();
+        $('#'+cw.name+'_dialog').remove();
+      },
+      height: 'auto',
+      width: 'auto',
+      resizable: false
+      });
+      }
+      
+      if(cw.status == 'disconnected'){
+      var errorBar = document.getElementById('errorBar');
+      errorBar.innerHTML = 'Oops! Disconnected from rosbridge. Please refresh the page.';
+      }
+      };
+            
+    </script>
+  </head>
+
+  <!-- Call start() function after the page is loaded -->
+  <body onload="start()"
+	
+	<!-- Everything is a part of the interface. So the dimensions of this div defines the size of the interface. -->
+	<div id="interface">
+	  
+	  <!-- Our canvas. The place where we will make scene viewer draw everything -->
+	  <div>
+	    <canvas id="WEBGL_CANVAS" style="border: 2px solid black;"></canvas>
+	  </div>
+
+	  <!-- Our control panel -->
+	  <div id="controlPanel" style="border: 2px solid black; float:left;">       
+	    <!-- Our visualization control panel will insert it's button here in this div -->
+	    <div id="vis_control" style="width:105px;height:60px;padding:2px;float:left;"></div>
+	    <div id="errorBar" style="width:500px;height:60px;padding:2px;float:left;">You will see errors and help here</div>
+	  </div>
+
+	</div>
+
+	<!-- This div will be used by the Visualization Control Panel to open a dialog.-->
+	<!-- The plan is to remove this in the future and make VCP self contained. -->
+	<!-- FYI, VCP is the first dialog that opens when you click on the button. -->
+	<div id="visualization_dialog" title="Visualization Control Panel">  
+	  <div id="visualizations"></div>  
+	</div>
+	     
+  </body>
+</html>

@@ -1,0 +1,15 @@
+<package>
+  <description brief="rosjs_tests">
+    rosjs tests.
+  </description>
+  <author>Benjamin Pitzer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosjs_tests</url>
+  <!-- depend package="rosjs"/ -->
+  <depend package="rosjs_common"/>
+  <depend package="rosjs_visualization"/>
+  <depend package="rosjs_remotelabwidgets"/>
+</package>
+
+

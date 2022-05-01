@@ -1,0 +1,4 @@
+string arm
+uint32 objectid
+---
+bool success

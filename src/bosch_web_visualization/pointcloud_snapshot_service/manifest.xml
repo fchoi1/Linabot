@@ -1,0 +1,17 @@
+<package>
+  <description brief="pointcloud_snapshot_service">
+
+     pointcloud_snapshot_service
+
+  </description>
+  <author>Sarah Osentoski</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pointcloud_snapshot_service</url>
+  <depend package="roscpp"/>
+  <depend package="pcl"/>
+  <depend package="pcl_ros"/>
+  <depend package="sensor_msgs"/>
+</package>
+
+

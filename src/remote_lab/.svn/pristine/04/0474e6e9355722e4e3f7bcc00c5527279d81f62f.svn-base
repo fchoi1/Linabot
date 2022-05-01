@@ -1,0 +1,23 @@
+<stack>
+  <description brief="remote_lab">
+  	A stack of tools for remote control, tele-op and remote labs. 
+  </description>
+  <author>Maintained by Sarah Osentoski and Benjamin Pitzer</author>
+  <license>BSD</license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/remote_lab</url>
+  <depend stack="arm_navigation" /> <!-- kinematics_msgs -->
+  <depend stack="brown_remotelab" /> <!-- rosbridge -->
+  <depend stack="common" /> <!-- actionlib -->
+  <depend stack="common_msgs" /> <!-- actionlib_msgs, trajectory_msgs, geometry_msgs, visualization_msgs -->
+  <depend stack="geometry" /> <!-- tf -->
+  <depend stack="image_common" /> <!-- image_transport -->
+  <depend stack="object_manipulation" /> <!-- household_objects_database, object_manipulator, object_manipulation_msgs -->
+  <depend stack="pr2_kinematics" /> <!-- pr2_arm_kinematics -->
+  <depend stack="pr2_object_manipulation" /> <!-- pr2_gripper_reactive_approach, pr2_tabletop_manipulation_launch, tabletop_object_detector, tabletop_collision_map_processing, simple_Jtranspose_controller -->
+  <depend stack="ros" /> <!-- roslib -->
+  <depend stack="ros_comm" /> <!-- rospy, std_msgs, roscpp -->
+  <depend stack="vision_opencv" /> <!-- opencv2, cv_bridge -->
+  <depend stack="visualization" /> <!-- interactive_markers -->
+
+</stack>

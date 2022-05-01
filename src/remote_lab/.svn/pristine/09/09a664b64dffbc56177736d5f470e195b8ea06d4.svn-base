@@ -1,0 +1,71 @@
+
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Robot Viewer</title> 
+
+<script type="text/javascript" src="../../wviz/js/jquery/jquery-latest.js"></script>
+<script type="text/javascript" src="../../wviz/js/json2/json2.js"></script>
+<script type="text/javascript" src="../../wviz/js/spidergl/spidergl.js"> </script> 
+
+<script type="text/javascript" src="../../wviz/js/ros/ros.js"> </script> 
+<script type="text/javascript" src="../../wviz/js/ros/b64codec/b64codec.js"></script>
+<script type="text/javascript" src="../../wviz/js/ros/binaryparser/binaryparser.js"></script>
+<script type="text/javascript" src="../../wviz/js/ros/common.js"></script> 
+<script type="text/javascript" src="../../wviz/js/ros/remotelabwidgets/remotelabwidgets.js"></script> 
+
+<script type="text/javascript" src="../../wviz/js/ros/math/math.js"> </script> 
+<script type="text/javascript" src="../../wviz/js/ros/roslib/roslib.js"> </script> 
+<script type="text/javascript" src="../../wviz/js/ros/pcl/pcl.js"> </script> 
+<script type="text/javascript" src="../../wviz/js/ros/urdf/urdf.js"> </script>  
+<script type="text/javascript" src="../../wviz/js/ros/visualization/visualization.js"> </script>
+<script type="text/javascript" src="../../wviz/js/ros/tf/tf.js"> </script> 
+<script> 
+
+function start()
+{ 
+  var node = new ros.NodeHandle("ws://localhost:9090");
+  node.setOnClose(function(e) {
+    ros_debug("Disconnected or Can't Connect.");
+  });
+
+  node.setOnError(function(e) {
+    ros_debug("Unknown error!");
+  });
+
+  node.setOnOpen(function(e) {   
+    ros_debug("Connected to " + node.url + ".");
+    var tf = new ros.tf.TransformListener(node, "/tf"); 
+    var vm = new ros.visualization.VisualizationManager("SGL_CANVAS1");
+    vm.initialize(node, tf);
+    vm.addPointCloud2('/pclrgb');
+  });
+
+  var url1="http://merry:8080/?topic=/camera/rgb/image_color?width=320?height=240";
+  var video0 = new ros.widgets.MJPEGWidget("image_display1", 320, 240, url1);
+
+}
+
+</script> 
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+</head> 
+
+<body onload="start()">
+<div style="float:left;width:50%">
+  <div id="image_display1"></div>
+</div>
+<div style="float:left;width:50%">
+  <canvas id="SGL_CANVAS1" width=500 height=500></canvas> 
+  <div id="framerate"></div> 
+</div>
+
+
+<div style="font-family: fixed-width; font-size: small;" id="log"></div>
+</body> 
+ 
+</html> 

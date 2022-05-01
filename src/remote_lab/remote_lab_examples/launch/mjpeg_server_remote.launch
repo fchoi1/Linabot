@@ -1,0 +1,8 @@
+<launch>
+  <include file="$(find wviz)/launch/machines.launch" />
+  
+	<node pkg="mjpeg_server" type="mjpeg_server"  name="mjpeg_server" machine="mjpeg_server">
+		<param name="port" type="int" value="8080" />
+	</node>
+
+</launch>

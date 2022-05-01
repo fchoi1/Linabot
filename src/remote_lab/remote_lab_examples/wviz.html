@@ -1,0 +1,522 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="language" content="en" />
+<title>Pick and Place Demo</title>
+<link rel="stylesheet" type="text/css"
+	href="css/layout-default-latest.css" />
+<link rel="stylesheet" type="text/css"
+	href="css/themes/base/jquery.ui.all.css" />
+<!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+<link rel="stylesheet" type="text/css" href="css/remote_lab.css" />
+
+<!-- REQUIRED scripts for layout widget -->
+<script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+<script type="text/javascript" src="js/jquery/jquery-ui-latest.js"></script>
+<script type="text/javascript" src="js/jquery/jquery.layout-latest.js"></script>
+<script type="text/javascript" src="js/jquery/themeswitchertool.js"></script>
+<script type="text/javascript" src="js/jquery/debug.js"></script>
+<script type="text/javascript" src="js/RGraph/RGraph.common.core.js"></script>
+<script type="text/javascript" src="js/RGraph/RGraph.common.context.js"></script>
+<script type="text/javascript" src="js/RGraph/RGraph.line.js"></script>
+<script type="text/javascript" src="js/spidergl/spidergl.js"></script>
+<script type="text/javascript" src="js/joystick.js"></script>
+
+<!-- REQUIRED scripts for ROS -->
+<script type="text/javascript" src="js/ros/ros.js"></script>
+<script type="text/javascript" src="js/ros/b64codec/b64codec.js"></script>
+<script type="text/javascript" src="js/ros/binaryparser/binaryparser.js"></script>
+<script type="text/javascript" src="js/ros/common.js"></script>
+<script type="text/javascript"
+	src="js/ros/visualization/visualization.js"></script>
+<script type="text/javascript"
+	src="js/ros/remotelabwidgets/remotelabwidgets.js"></script>
+<script type="text/javascript"
+	src="js/ros/visualization_widgets/visualization_widgets.js"></script>
+
+<script type="text/javascript">
+  var outerLayout;
+  var widgetmanager;
+  var tf;
+
+
+  var rosjs_server=null; 
+  var mjpeg_server=null; 
+
+  var img_web = "mjpeg_iframe_web.html";
+  var myLayout, $westAccordion, $eastAccordion; // init global vars
+  var selected_object;
+  var active_control=1; //0 - pick and place, 1 - keyboard
+  var pr2keycont;
+  var node;
+
+  function resizeWidgets () {
+    $westAccordion.accordion("resize");
+    $eastAccordion.accordion("resize");
+  };
+
+
+  function log(msg) {
+    jQuery('#log').append(msg.toString() + '<br>');
+  };
+
+
+
+  function resizeCanvas() {
+    var state = outerLayout.state;
+    var c = document.getElementById('WEBGL_CANVAS');
+    var westOffset = state.west.isClosed?0:state.west.size;
+    var eastOffset = state.east.isClosed?0:state.east.size;
+    c.width  = state.container.innerWidth - eastOffset - westOffset - 50;
+    c.height = state.container.innerHeight - state.south.size - state.north.size - 50;
+  }
+
+  function addMarkerToScene(node, marker_topic) {
+    srv = node.serviceClient("/wviz_scene_manager/add_marker");
+    srv.call(ros.json([marker_topic]), ros.nop);
+  }
+
+  function updateAllTransforms(node) {
+    srv = node.serviceClient("/wviz_tf_manager/publish_all_transforms");
+    srv.call(ros.json([]), ros.nop);
+  }
+
+  function createSnapshotWidget(div_id, selector_div_id, initial_topic) {
+    var video_width = 320;
+    var video_height = 240;
+    var video_quality = 30;
+    var video_update_interval = 1000;
+    var img_url= "http://" + mjpeg_server + ":8080/snapshot?topic="+initial_topic+"?width="+video_width+"?height="+video_height+"?quality="+video_quality;
+    var video = new ros.widgets.SnapshotWidget(div_id, video_width, video_height, img_url, video_update_interval);
+    
+    jQuery("#"+selector_div_id).change(function(){
+      var topic=jQuery("#"+selector_div_id).val();
+      var img_url= "http://" + mjpeg_server + ":8080/snapshot?topic="+ topic +"?width="+video_width+"?height="+video_height+"?quality="+video_quality;
+      video.uri = img_url;
+    });
+  }
+  
+  function createInterface(node)
+  {
+    
+    tf = new ros.tf.TransformListener(node, "/tf_changes");
+    var vm = new ros.visualization.VisualizationManager("WEBGL_CANVAS");
+    vm.initialize(node, tf);
+
+    widgetmanager = new ros.widgets.WidgetManager(node);
+    widgetmanager.setupWidgets();
+
+    // create frame counter
+    var fpsobj = document.getElementById("nav_element_fps");
+    if (fpsobj) {
+      var fps_widget = new ros.widgets.FPSCounterWidget(fpsobj);
+      vm.scene_viewer.setOnDraw(function (gl,xform) {
+        fps_widget.update();
+      });
+    }
+
+    // create bitrate counter
+    var bitrateobj = document.getElementById("nav_element_bitrate");
+    if (bitrateobj) {
+      var bitrate_widget = new ros.widgets.BitrateWidget(bitrateobj);
+      node.setOnMessage(function (e) {
+        bitrate_widget.update(e.data.length * 8.0);
+      });
+    }
+
+    // create bitrate graph
+
+    $( "#bitrate_graph_dialog" ).dialog({ height: 450,  width: 850 });
+    var bitrategraphobj = document.getElementById("bitrate_graph");
+    if (bitrategraphobj) {
+      var bitrate_graph_widget = new ros.widgets.BitrateGraphWidget(bitrateobj);
+      bitrate_graph_widget.setTopics(["/tf_changes","/dashboard_agg","/head_traj_controller_state_throttle"]);
+      bitrate_graph_widget.drawGraph();
+      node.setOnMessage(function (e) {
+        bitrate_graph_widget.update(e);
+      });
+    }
+
+	var visualizationcontrolobj = document.getElementById("vis_control");
+    if (visualizationcontrolobj) {
+    	var visualization_control_widget=new ros.widgets.VisControlPanel(visualizationcontrolobj);
+    	visualization_control_widget.setVM(vm);
+    }
+    $( "#ping_graph_dialog" ).dialog({ height: 450,  width: 850 });
+	
+	
+	
+	//$(control_button).click(function(e){			
+	//		 $( "#visualization_dialog" ).dialog({ height: 450,  width: 850 });
+	//		 //htmltext=that.getDisplayHtml()
+	//		 //$("#select_visualization").html(htmltext);
+    //});
+    
+    vm.addVisualizationScene("/scene");
+    addMarkerToScene(node,"/tabletop_segmentation_markers");
+    addMarkerToScene(node,"/tabletop_object_recognition_markers");
+    
+    vm.addGrid("/odom_combined", 10.0, 1.0);
+    var robot_model = vm.addRobotModel("resources/pr2_description/pr2_urdf.xml");
+    var remotelab_model = vm.addRobotModel("resources/remote_lab_description/table_urdf.xml");
+    remotelab_model.setPosition(new ros.math.Vector3(1.3,-1.7,-0.03));
+    vm.addPointCloud2('/rosjs_point_cloud_converter/pointcloud2');
+
+    /*createSnapshotWidget("image_display1", "camera_stream_selector1","/remote_lab_cam0/image_raw?invert");
+    createSnapshotWidget("image_display2", "camera_stream_selector2","/remote_lab_cam1/image_raw");
+    createSnapshotWidget("image_display3", "camera_stream_selector3","/remote_lab_cam2/image_raw");
+   */
+    ros_debug("defining key control");
+    //we are starting with the pick and place active.  Tus make sure l_cart and r_cart are not running right away
+   
+  }
+
+		function initializeRosConnection(){
+			log("connecting to rosbridge server:" + rosjs_server + " and mjpeg_server: " + mjpeg_server);
+			node = new ros.NodeHandle("ws://" + rosjs_server + ":9090");
+    		
+    		node.setOnClose(function(e) {
+			log("Disconnected or Can't Connect.");
+    		});
+
+    		node.setOnError(function(e) {
+			log("Unknown error!");
+    		});
+
+      		node.setOnOpen(function(e) {
+	  		log("Connected to " + node.url + ".");
+
+			createInterface(node);
+	    	});
+	}
+	
+	function getCookie(c_name){
+	  var i,x,y,ARRcookies=document.cookie.split(";");
+	  for (i=0;i<ARRcookies.length;i++)
+  	  {
+  		x=ARRcookies[i].substr(0,ARRcookies[i].indexOf("="));
+  		y=ARRcookies[i].substr(ARRcookies[i].indexOf("=")+1);
+  		x=x.replace(/^\s+|\s+$/g,"");
+  		if (x==c_name)
+  		{
+    		return unescape(y);
+    	}
+  	  }
+	}
+	
+	
+	function setCookie(c_name, value, exdays){
+	var exdate=new Date();
+	exdate.setDate(exdate.getDate() + exdays);
+	var c_value=escape(value) + ((exdays==null) ? "" : "; expires="+exdate.toUTCString());
+	document.cookie=c_name + "=" + c_value;
+	
+	}
+	
+	function checkCookie(){
+	  rosjs_server=getCookie("rosbridge_server");
+	  mjpeg_server=getCookie("mjpeg_server");
+
+	  if(rosjs_server!=null && rosjs_server!="" && mjpeg_server!=null && mjpeg_server!=""){
+	   initializeRosConnection();
+	   return;
+	  }
+	  
+	  
+	  $( "#set_server_dialog" ).dialog({ height: 450,  width: 850 });
+	  divtext="<br><br><center><form name=\"server_form\"> rosbridge server: <input type\"text\" name=\"rosbridge_server\"/> <br/> mjpeg server: <input type\"text\" name=\"mjpeg_server\"/><br><input type=\"submit\" id=\"server_submit\" value=\"Submit\" /><br><br><br> wviz will save your settings as a cookie.  If you wish to switch to a new server please clear the cookies for this page.</center></form>"
+	  $("#set_server_dialog").html(divtext);
+	  	
+	  jQuery('#server_submit').click(function(e){
+		
+  		mjpeg_servervalue=document.forms["server_form"].elements["mjpeg_server"].value;
+  		rosbridge_servervalue=document.forms["server_form"].elements["rosbridge_server"].value;
+  		    
+  		if(rosbridge_servervalue!="" && mjpeg_servervalue!=""){
+	       setCookie("rosbridge_server", rosbridge_servervalue, 30);
+	       setCookie("mjpeg_server", mjpeg_servervalue, 30);
+	       $("#set_server_dialog").dialog('close');
+	       
+			rosjs_server=rosbridge_servervalue;
+			mjpeg_server=mjpeg_servervalue;	       
+	   		
+	       initializeRosConnection();
+	       
+	    }
+	    else{
+	     	newdivtext="Please fill in both fields!<br><br><br>" + divtext;
+	    	$("#set_server_dialog").html(newdivtext);
+	    }
+	    	
+		});
+		
+	
+		
+	}
+
+   function start()
+  {
+  
+    var webaddress=window.location.href;//$(location).attr('href');
+    var imgaddress ="http://"+ webaddress.slice(webaddress.indexOf('?')+1);
+       	
+  	checkCookie();
+  	
+  
+  }
+
+  /*
+  *#######################
+  *     ON PAGE LOAD
+  *#######################
+  */
+  jQuery(document).ready( function() {
+
+    jQuery("#right_nav").tabs();
+
+    // create the OUTER LAYOUT
+    //outerLayout = jQuery("body").layout( layoutSettings );
+
+    outerLayout = jQuery('body').layout({
+      west__size:     300
+    , east__size:     320
+    , south__size:    150
+      // RESIZE Accordion widget when panes resize
+    , west__onresize:   function () { jQuery("#accordion_west").accordion("resize"); }
+    , east__onresize:   function () { jQuery("#accordion_east").accordion("resize"); }
+    , center__onresize_end:     function () { resizeCanvas(); }
+    });
+
+    // ACCORDION - in the West pane
+
+    $westAccordion = jQuery("#accordion_west").accordion({
+
+	fillSpace:  true,
+	change: function(event, ui){
+	    controller_manager_switcher_service=node.serviceClient('/pr2_controller_manager/switch_controller');
+	    active_control = jQuery( "#accordion_west" ).accordion( "option", "active" );
+	    
+	    if(active_control==1){
+		$("input[name='manual_control_select']")[0].checked=true;//always start with button off
+	//	pr2keycont.start($("input[name='selected_arm_manual']:checked").val());
+		//	controller_manager_switcher_service.call(ros.json([['l_cart', 'r_cart' ],['l_arm_controller', 'r_arm_controller'],2]), ros.nop);
+	    }
+	    else{
+		pr2keycont.stop();
+		controller_manager_switcher_service.call(
+		    ros.json([['l_arm_controller', 'r_arm_controller'],['l_cart', 'r_cart' ],2]), function(v){ros_debug(v);});
+	    }}
+    });
+
+
+
+    // ACCORDION - in the West pane
+    $eastAccordion = jQuery("#accordion_east").accordion({
+      fillSpace:  true
+    });
+
+    // THEME SWITCHER
+    addThemeSwitcher('.ui-layout-north',{ top: '12px', right: '20px' });
+    // if a new theme is applied, it could change the height of some content,
+    // so call resizeAll to 'correct' any header/footer heights affected
+    // NOTE: this is only necessary because we are changing CSS *AFTER LOADING* using themeSwitcher
+    setTimeout( resizeWidgets, 1000 ); /* allow time for browser to re-render with new theme */
+
+
+
+    log("ok setup");
+
+
+    // DEMO HELPER: prevent hyperlinks from reloading page when a 'base.href' is set
+    jQuery("a").each(function () {
+      var path = document.location.href;
+      if (path.substr(path.length-1)=="#") path = path.substr(0,path.length-1);
+      if (this.href.substr(this.href.length-1) == "#") this.href = path +"#";
+    });
+
+
+      $("input[name='manual_control_select']").change(function(){
+	  controller_manager_switcher_service=node.serviceClient('/pr2_controller_manager/switch_controller');
+	  value=$("input[name='manual_control_select']:checked").val();
+
+	  if(value=="on"){
+	     ros_debug('starting keyboard service');
+	      controller_manager_switcher_service.call(ros.json([['l_cart', 'r_cart' ],['l_arm_controller', 'r_arm_controller'],2]), ros.nop);
+	      pr2keycont.start($("input[name='selected_arm_manual']:checked").val());
+	     /* pr2keycont.setOnInitialized(function(e) {
+
+		  pr2keycont.keyControlOn();});*/
+	      }
+	  else{
+	      pr2keycont.stop();
+	      controller_manager_switcher_service.call(ros.json([['l_arm_controller', 'r_arm_controller' ],['l_cart', 'r_cart'],2]), ros.nop);
+	  }
+
+	  //  pr2keycont.switch_arm($("input[name='selected_arm_manual']:checked").val());
+      });
+
+      jQuery("input[name='selected_arm_manual']").change(function(){
+	  pr2keycont.switch_arm(jQuery("input[name='ed_arm_manual']:checked").val());
+      });
+     
+
+    resizeCanvas();
+  });
+</script>
+
+</head>
+<body onload="start()">
+
+	<style>
+#feedback {
+	font-size: 1.2em;
+}
+
+#selectable_vis_list .ui-selecting {
+	background: silver;
+}
+
+#selectable_vis_list .ui-selected {
+	background: gray;
+	color: white;
+}
+
+#selectable {
+    list-style-type: none;
+	margin: 0;
+	padding: 0;
+	width: 60%;
+}
+
+#selectable li {
+	margin: 3px;
+	padding: 0.4em;
+	font-size: 1.2em;
+	height: 18px;
+}
+</style>
+
+	<div class="ui-layout-west" style="display: none;">
+		<div class="ui-widget-header">Visualization</div>
+		<div class="ui-layout-content">
+			<div id="accordion_west" class="basic"></div>
+		</div>
+
+		<div class="ui-layout-east" style="display: none;">
+			<div class="ui-widget-header">Widgets</div>
+			<div class="ui-layout-content">
+
+				<div id="accordion_east" class="basic"></div>
+
+			</div>
+		</div>
+
+	</div>
+	
+		<div class="ui-layout-north ui-widget-content" style="display: none;">
+
+			<div id="navigation"
+				class="ui-tabs ui-widget ui-widget-content ui-corner-all">
+				<ul id="right_nav"
+					class="ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all">
+					<li><img src="images/pr2_remote_lab.png" height="50" /><img
+						src="images/newbrownlogo.png" height="50" /><img
+						src="images/Bosch_logo_invented_for_life__400x50.png" height="50" />
+					</li>
+					<li><div id="nav_element_motors" title="Motors"
+							class="nav_element" objtype=MotorsMonitorWidget
+							topic="/dashboard_agg"></div>
+					</li>
+					<li><div id="nav_element_circuits" title="Circuits"
+							class="nav_element" objtype=CircuitMonitorWidget
+							topic="/dashboard_agg"></div>
+					</li>
+					<li><div id="nav_element_charge" class="nav_element"
+							objtype=ChargeMonitor topic="c"></div>
+					</li>
+					<li><div id="nav_element_battery" title="Battery"
+							class="nav_element" objtype=BatteryMonitorWidget
+							topic="/dashboard_agg"
+							style="white-space: nowrap; font-weight: normal"></div>
+					</li>
+					<li><div id="nav_element_wireless" title="Wireless"
+							class="nav_element" objtype=WirelessSignalMonitor
+							topic="/dashboard_agg"></div>
+					</li>
+					<li>
+						<div id="nav_element_fps" title="FPS" class="nav_element"></div>
+						<div id="nav_element_bitrate" title="ROSJS Bitrate"
+							class="nav_element"></div> <!--
+	        <div id="nav_element_ping" title="Ping" class="nav_element" objtype=PingWidget topic="/pong"></div>
+	    --></li>
+					<li><div id="nav_element_runstop" title="Runstop"
+							class="nav_element" objtype=RunStopWidget></div>
+					</li>
+					<li><div id="vis_control" title="VisControlButton" objtype="VisControlPanel">
+							
+						</div>
+					</li>
+					<!--
+	    <li>
+	      <div>
+			    <button onClick="resizeWidgets()">Resize</button> &nbsp;
+			    <button onClick="removeUITheme(); resizeWidgets()">Remove Theme</button>
+			  </div>
+	    </li>
+	    -->
+				</ul>
+			</div>
+		</div>
+
+
+		<div class="ui-layout-south ui-widget-content" style="display: none;">
+			<div id="log" style="font-size: 1.5em;">
+				<br />
+			</div>
+		</div>
+
+		<div class="ui-layout-center" style="display: none;">
+			<p class="ui-layout-content ui-widget-content">
+				<canvas id="WEBGL_CANVAS" width="500" height="500"
+					style="border: 2px solid black"></canvas>
+
+			</p>
+
+		</div>
+
+		<!--  <div id="bitrate_graph_dialog" title="ROSJS Bitrate">
+  <div id="bitrate_graph">
+  <canvas id="bitrate_graph_canvas" width="800" height="400" style="float: right">[No canvas support]</canvas>
+   </div>
+</div>
+
+<div id="ping_graph_dialog" title="Ping">
+  <div id="ping_graph" objtype=PingGraphWidget topic="/pong">
+  <canvas id="ping_graph_canvas" width="800" height="400" style="float: right">[No canvas support]</canvas>
+   </div>
+</div>-->
+
+		<div id="set_server_dialog" title="">
+			<div id="set_server_div"></div>
+		</div>
+
+		<div id="visualization_dialog" title="Visualization Control Panel">
+		
+			<div id="visualizations"></div>
+	       
+		</div>
+		
+		<div id="add_visualization_dialog" title="Add Visualization Types">
+			<div id="select_visualization"></div>
+	       
+		</div>
+		
+		<div id="globaloptions_dialog" title="Global Options">
+			<div id="globaloptions_parameters"></div>
+	       
+		</div>
+</body>
+</html>

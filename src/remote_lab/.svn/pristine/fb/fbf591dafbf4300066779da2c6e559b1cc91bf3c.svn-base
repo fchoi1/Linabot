@@ -1,0 +1,9 @@
+<launch>
+  <include file="$(find wviz)/launch/mjpeg_server.launch"/>
+  <include file="$(find wviz)/launch/head_state_throttle.launch"/>
+  <include file="$(find wviz)/launch/wviz_tf_manager.launch"/>
+  <include file="$(find wviz)/launch/ping.launch"/>
+  <include file="$(find wviz)/launch/rosbridge.launch"/>
+  <include file="$(find wviz)/launch/pr2_arm_ik.launch"/>
+  <node name="wviz_kinematic_manager" pkg="wviz_kinematic_manager" type="wviz_kinematic_manager" respawn="true" output="screen"/>
+</launch>

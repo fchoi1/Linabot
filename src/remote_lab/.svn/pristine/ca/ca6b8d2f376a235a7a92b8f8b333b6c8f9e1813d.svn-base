@@ -1,0 +1,6 @@
+string command
+string arg
+
+---
+string response
+PickPlaceObject[] objects

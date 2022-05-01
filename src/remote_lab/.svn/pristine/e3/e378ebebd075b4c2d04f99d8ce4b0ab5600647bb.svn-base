@@ -1,0 +1,5 @@
+
+---
+int32 table_height
+int32 table_front_edge
+int32[] place_rectangle_dims

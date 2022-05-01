@@ -1,0 +1,496 @@
+
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Topics Published on Alan</title> 
+
+<!-- REQUIRED scripts for layout widget --> 
+<script type="text/javascript" src="../../wviz/js/jquery/jquery-latest.js"></script> 
+<script type="text/javascript" src="../../wviz/js/jquery/jquery-ui-latest.js"></script>
+<script type="text/javascript" src="../../wviz/js/jquery/jquery.layout-latest.js"></script>
+
+<!-- REQUIRED scripts for ROS --> 
+<script type="text/javascript" src="../../wviz/js/ros/ros.js"></script> 
+<script type="text/javascript" src="../../wviz/js/ros/common.js"></script> 
+<script type="text/javascript" src="../../wviz/js/ros/remotelabwidgets/remotelabwidgets.js"></script> 
+
+<script> 
+function start()
+{
+  var node = new ros.NodeHandle("ws://rtc.pr2-remotelab.com:9090");
+
+  node.setOnClose(function(e) {
+    document.write("Alan is unavailable.");
+    ros_debug("Disconnected or Can't Connect.");
+  });
+
+  node.setOnError(function(e) {
+    ros_debug("Unknown error!");
+  });
+
+  node.setOnOpen(function(e) {   
+    ros_debug("Connected to " + node.url + ".");
+    //document.write("Connected to Alan, retrieving data...");
+    node.getTopics(printTopics);
+  });  
+}
+
+function printAllTopics(topicList){
+
+  for (var t in topicList){
+//    ros_debug(t);
+//    ros_debug(topicList[t]);
+    topic = topicList[t];
+    document.write(t+":"+topicList[t] + "<br>");
+  }  
+}
+function $(id) { return document.getElementById(id); }
+
+// Handle of the textarea
+var wall;
+
+// All sensor related topics
+var sensorTopics=new Array();
+
+// Topic types under sensor topics
+// These will be combined into sensorTopics array
+var cameraTopics=new Array();
+var laserTopics=new Array();
+var accimuTopics=new Array();
+var odometryTopics=new Array();
+var touchTopics=new Array();
+
+// All actuator related topics
+var actuatorTopics=new Array();
+
+// Topic types under actuator topics
+// These will be combined into actuatorTopics array
+var bodyTopics=new Array();
+var headTopics=new Array();
+
+// Array that keeps topic types together
+var topicTypes=new Array();
+
+// Coordinate systems related topics (tf etc.)
+var coordinatesysTopics=new Array();
+
+// Network related topics
+var networkTopics=new Array();
+
+// Power and battery related topics
+var powerTopics=new Array();
+
+// Misc. topics that don't fit in other groups
+var otherTopics=new Array();
+
+// Array that keeps all topics
+var allTopics=new Array();
+
+// Array that keeps keywords for grouping the topics
+var kw=new Array();
+
+// Array that keeps the options of the type select
+var typeOpts=new Array();
+
+function printTopics(topicList){
+  wall=$("wall");
+  var topic;
+  sensorTopics.push("Sensor related topics:");
+  actuatorTopics.push("Actuator related topics:");
+  coordinatesysTopics.push("Coordinate systems related topics:");
+  networkTopics.push("Network related topics:");
+  powerTopics.push("Power related topics:");
+  otherTopics.push("Other topics:");
+
+  cameraTopics.push("Topics related to cameras:");
+  laserTopics.push("Topics related to laser range finders and scanners:");
+  accimuTopics.push("Topics related to accelerometer and IMU:");
+  odometryTopics.push("Topics related to odometry data:");
+  touchTopics.push("Topics related to touch sensors:");
+  bodyTopics.push("Topics related to body of the robot:");
+  headTopics.push("Topics related to head of the robot:");
+
+  // Keywords for camera related topics
+  kw[0] = /\/wide_stereo/i;
+  kw[1] = /\/narrow_stereo/i;
+  kw[2] = /\/r_forearm_cam/i;
+  kw[3] = /\/l_forearm_cam/i;
+  kw[4] = /\/camera_synchronizer_node/i;
+  kw[5]=  /\/prosilica/i;
+  kw[6] = /\/head_camera/i;
+  kw[7] = /\/projector_trigger/i;
+
+  // Keywords for laser or scanner related topics
+  kw[8] = /\/laser_tilt_controller/i;
+  kw[9] = /\/base_scan/i;
+  kw[10] = /\/tilt_hokuyo_node/i;
+  kw[11] = /\/base_hokuyo_node/i;
+
+  // Keywords for accelerometer, imu related topics
+  kw[12] = /\/accelerometer/i;
+  kw[13] = /\/torso_lift_imu/i;
+
+  // Keywords for odometry topics
+  kw[14] = /\/base_odometry/i;
+
+  // Keywords for touch sensor topics
+  kw[15] = /\/pressure/i;
+
+  // Keywords for body related topics  
+  kw[16] = /\/motor_trace/i;
+  kw[17] = /\/l_arm_controller/i;
+  kw[18] = /\/r_arm_controller/i;
+  kw[19] = /\/torso_controller/i;
+  kw[20] = /\/l_gripper_controller/i;
+  kw[21] = /\/r_gripper_controller/i;
+  kw[22] = /\/base_controller/i;
+  kw[23] = /\/mechanism_statistics/i;
+  kw[24] = /\/joint_states/i;
+
+  // Keywords for head related topics
+  kw[25] = /\/head_traj_controller/i;
+
+  // Keywords for coordinate system, tf related topics
+  kw[26] = /\/tf/i;
+  kw[27] = /\/robot_pose_ekf/i;
+
+  // Keywords for network related topics
+  kw[28] = /\/ping/i;
+  kw[29] = /\/users_online/i;
+  kw[30] = /\/network/i;
+  kw[31] = /\/pr2_ethetCAT/i;
+  kw[32] = /\/app/i;
+  kw[33] = /\/diagnostics/i;
+  
+  // Keywords for power related topics
+  kw[34] = /\/power/i;
+  kw[35] = /\/battery/i;
+
+  // Keywords for other topics
+  kw[36] = /\/rosout/i;
+  kw[37] = /\/ddwrt/i;
+  kw[38] = /\/calibration/i;
+  kw[39] = /\/scene/i;
+  kw[40] = /\/joy/i;
+  kw[41] = /\/calibrated/i;
+  kw[42] = /\/dashboard/i;
+  
+  for (var t in topicList){
+    topic = topicList[t];
+    for(var k in kw){
+
+      if(7>=k && k>=0){
+        if(topic.match(kw[k]) != null){
+          cameraTopics.push(topic);
+          sensorTopics.push(topic);
+        }
+      }
+      if(11>=k && k>=8){
+        if(topic.match(kw[k]) != null){
+          laserTopics.push(topic);
+          sensorTopics.push(topic);
+        }
+      }
+      if(13>=k && k>=12){
+        if(topic.match(kw[k]) != null){
+          accimuTopics.push(topic);
+          sensorTopics.push(topic);
+        }
+      }
+      if(14==k){
+        if(topic.match(kw[k]) != null){
+          odometryTopics.push(topic);
+          sensorTopics.push(topic);
+        }
+      } 
+      if(15==k){
+        if(topic.match(kw[k]) != null){
+          touchTopics.push(topic);
+          sensorTopics.push(topic);
+        }
+      }
+      if(24>=k && k>=16){
+        if(topic.match(kw[k]) != null){
+          bodyTopics.push(topic);
+          actuatorTopics.push(topic);
+        }
+      }
+      if(25==k){
+        if(topic.match(kw[k]) != null){
+          headTopics.push(topic);
+          actuatorTopics.push(topic);
+        }
+      }
+      if(27>=k && k>=26){
+        if(topic.match(kw[k]) != null){
+          coordinatesysTopics.push(topic);
+        }
+      }
+      if(28>=k && k>=33){
+        if(topic.match(kw[k]) != null){
+          networkTopics.push(topic);
+        }
+      }
+      if(35>=k && k>=34){
+        if(topic.match(kw[k]) != null){
+          powerTopics.push(topic);
+        }
+      }
+      if(42>=k && k>=36){
+        if(topic.match(kw[k]) != null){
+          otherTopics.push(topic);
+        }
+      }
+    }
+  }
+
+  topicTypes.push(cameraTopics);
+  topicTypes.push(laserTopics);
+  topicTypes.push(accimuTopics);
+  topicTypes.push(odometryTopics);
+  topicTypes.push(touchTopics);
+  topicTypes.push(bodyTopics);
+  topicTypes.push(headTopics);
+
+  allTopics.push(sensorTopics);
+  allTopics.push(actuatorTopics);
+  allTopics.push(coordinatesysTopics);
+  allTopics.push(networkTopics);
+  allTopics.push(powerTopics);
+  allTopics.push(otherTopics);
+
+  for(var g in allTopics){
+    for(var t in allTopics[g]){
+      //document.write(t+":"+allTopics[g][t] + "<br>");
+      if(t != 0){
+        wall.value += t+":"+allTopics[g][t] + "\n";
+      }
+      else{
+        wall.value += allTopics[g][t] + "\n";
+      }
+    }
+  }
+
+  for(var i=0;i<8;i++){
+    typeOpts.push(document.createElement("option"));
+  }
+  
+  typeOpts[0].text="All";
+  typeOpts[0].value="0"
+  typeOpts[0].selected=true;
+  typeOpts[0].defaultSelected=true;
+
+  typeOpts[1].text="Cameras";
+  typeOpts[1].value="1";
+
+  typeOpts[2].text="Laser";
+  typeOpts[2].value="2";
+
+  typeOpts[3].text="Acc/IMU";
+  typeOpts[3].value="3";
+
+  typeOpts[4].text="Odometry";
+  typeOpts[4].value="4";
+
+  typeOpts[5].text="Touch";
+  typeOpts[5].value="5";
+
+  typeOpts[6].text="Body";
+  typeOpts[6].value="6";
+
+  typeOpts[7].text="Head";
+  typeOpts[7].value="7";
+}
+
+
+// This function filers the results by topic group
+function selectgroup ( which, num, win )
+{
+  wall.value="";
+  var choice = $("groupmenu");
+  var n = choice.options[choice.selectedIndex].value;
+
+  if(n==6){
+    var i=0;
+    var f=5;
+  }
+  else{
+    var i=n;
+    var f=n;
+  }
+
+  for(var g=i;g<=f;g++){
+    for(var t in allTopics[g]){
+      if(t != 0){
+        wall.value += t+": "+allTopics[g][t] + "\n";
+      }
+      else{
+        wall.value += allTopics[g][t] + "\n" + "\n";
+      }
+    } 
+  }
+
+  var tm = $("typemenu");
+  // Clean the type drop down menu
+  var i=0;
+  while( 0 < tm.length){
+    tm.remove(i);
+  }
+
+  typeOpts[0].selected=true;
+  typeOpts[0].defaultSelected=true;
+  typeOpts[0].value="0";
+  // Add the first option by default.
+  tm.add(typeOpts[0],0);
+
+  switch(choice.selectedIndex)
+  {
+  // All types
+  case 0:
+    for( var i=1; i < 8; i++){
+      typeOpts[i].value = i.toString();
+      tm.add(typeOpts[i],0);
+    }
+    break;
+  // Sensor types
+  case 1:
+    for( var i=1; i < 6; i++){
+      typeOpts[i].value = i.toString();
+      tm.add(typeOpts[i],0);
+    }
+    break;    
+  // Actuator types
+  case 2:
+    for( var i=6; i < 8; i++){
+      typeOpts[i].value = i.toString();
+      tm.add(typeOpts[i],0);
+    }
+    break;
+  }
+}
+
+
+// This function filters the results by topic type
+function selecttype ( which, num, win )
+{
+  wall.value="";
+  var typeval = $("typemenu").options[ $("typemenu").selectedIndex].value;
+  var groupval = $("groupmenu").options[$("groupmenu").selectedIndex].value;
+
+  var filteredResults=new Array();
+
+  if(typeval=="0"){
+    switch(Number(groupval))
+    {
+    case 0:
+      filteredResults.push(sensorTopics);
+      break;
+    case 1:
+      filteredResults.push(actuatorTopics);
+      break;
+    case 2:
+      filteredResults.push(coordinatesysTopics);
+      break;
+    case 3:
+      filteredResults.push(networkTopics);
+      break;
+    case 4:
+      filteredResults.push(powerTopics);
+      break;
+    case 5:
+      filteredResults.push(otherTopics);
+      break;
+    }
+  }
+  else{
+    filteredResults.push(topicTypes[Number(typeval)-1]);
+  }
+  
+  for(t in filteredResults[0]){
+    if( t != 0){
+      wall.value += t + ": " + filteredResults[0][t] + "\n";
+    }
+    else{
+      wall.value += filteredResults[0][t] + "\n" + "\n";
+    }
+  }
+}
+
+function findtopic(which,e){
+  var key;
+
+  if(e.which){
+    key = e.which;
+  }
+  
+  var searchexp = new RegExp(document.filtertopics.topicsearch.value.toString());
+  var dummytopic;
+
+  if(key == 13){
+    wall.value="";
+    for(var g in allTopics){
+      for(var t in allTopics[g]){
+        dummytopic = allTopics[g][t].toString();
+        if(dummytopic.match(searchexp) != null){
+           wall.value += dummytopic + "\n";
+        }
+      }
+    }
+    if(wall.value==""){
+      wall.value="No matching topic was found.";
+    }
+  }
+}
+
+</script>
+
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+
+</head> 
+
+<body onload="start()"> 
+<!--h4>One row and three columns:</h4-->
+<table border="0">
+<tr>
+  <td valign="top">
+
+  <form name="filtertopics">
+  Select a group of topics <br>
+  <select id="groupmenu" onchange="selectgroup(this, 1, false)">
+  <option value="6">All</option>
+  <option value="0">Sensors</option>
+  <option value="1">Actuators</option>
+  <option value="2">Coordinate Systems</option>
+  <option value="3">Network</option>
+  <option value="4">Power</option>
+  <option value="5">Other</option>
+  </select> <br><br>
+ 
+  Select a type of topic <br>
+  <select id="typemenu" onchange="selecttype(this, 1, false)">
+  <option>All</option>
+  </select> <br><br>
+
+  Search:
+  <input type="text" size="10" name="topicsearch" onkeypress="findtopic(this,event)"/><br />
+  <!--This second input is to resolve the browser quirk that happens with one input field. If the user presses enter, the form is reloaded in case of one input field. To solve it, we have this second invisible input field.-->
+  <input type="text" name="resolvequirk" value="Fix browser bug" style="display:none" />
+  </form>
+
+  </td>
+  <td>
+  <form>
+  <textarea id="wall" readonly rows="30" cols="100" style="resize: none;">
+  </textarea>
+  </form>
+  </td>
+ 
+</tr>
+</table>
+</body>
+</html> 

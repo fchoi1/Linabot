@@ -1,0 +1,12 @@
+<package>
+  <catkin/>
+  <description brief="remote_lab_examples">
+    mostly old wviz examples are moved in here
+  </description>
+  <author>Halit Bener Suay</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/remote_lab_examples</url>
+</package>
+
+

@@ -1,0 +1,3 @@
+<launch>
+  <node name="mjpeg_server" pkg="mjpeg_server" type="mjpeg_server" />
+</launch>

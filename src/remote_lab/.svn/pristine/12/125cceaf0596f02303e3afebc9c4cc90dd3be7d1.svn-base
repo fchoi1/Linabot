@@ -1,0 +1,3 @@
+<launch>
+  <node name="pr2_pick_and_place_service" pkg="pr2_pick_and_place_service" type="pick_and_place_service.py" respawn="false" output="screen" />
+</launch>

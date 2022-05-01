@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
+
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"/>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css"/>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+<script src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/mjpegcanvasjs/current/mjpegcanvas.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/EaselJS/current/easeljs.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+<script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+<!-- THIS IS LOADED FROM THE APACHE SERVER BECAUSE WE NEEDED TO MODIFY THE SOURCE CODE-->
+<script type="text/javascript" src="http://linabot:8888/js_files/ros2d.js"></script>
+<script type="text/javascript" src="http://linabot:8888/js_files/Nav2D.js"></script>
+
+<script type="text/javascript">
+
+  //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+  //> BOTH OF THESE IPs COULD BE MADE FINAL IF IPs WERE STATIC BUT THEY ARE CURRENTLY DYNAMIC ON LINAMAR NETWORK CHANGE THEM AS NECCESSARY <
+  //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  //IP of the computer which is hosting the Ros Master
+  var hostIP = '10.193.39.144';
+  //IP for the raspberry Pi in order to get the video stream data
+  var piIP = '10.193.38.112';
+
+  var waypoints = [];
+  var ip = [];
+  var pos = [];
+  var index = 0;
+  var routing = false;
+
+  //This IP is a temporary value for the robot arms or machines the linabot may want to talk to if it is given a waypoint command
+  var roboIP = -1;
+
+  //connect to ros
+  var ros = new ROSLIB.Ros({
+    url : 'ws://'+hostIP+':9090'
+  });
+
+  /**
+   *runs on start to setup one time connections
+   *@param none
+   *@return null
+   */
+  function init() {
+
+    //loops through data provided by server to load 
+    {% for i in waypoints %}
+      waypoints.push("{{i[0]}}");
+      ip.push("{{i[1]}}");
+      pos.push(parseFloat("{{i[2]}}"));
+      pos.push(parseFloat("{{i[3]}}"));
+      pos.push(parseFloat("{{i[4]}}"));
+    {% endfor %}
+
+    //debugging
+    console.log(waypoints);
+    
+    //This creates the dropdown elements based of the list of waypoints from the server, go to the function to see the magic
+    makeOption(waypoints);    
+
+    // Create the main viewer.
+    var viewer = new ROS2D.Viewer({
+      divID : 'nav',
+      width : 750,
+      height : 480
+    });
+
+    // Setup the nav client.
+    var nav = NAV2D.OccupancyGridClientNav({
+      ros : ros,
+      rootObject : viewer.scene,
+      viewer : viewer,
+      serverName : '/move_base',
+      withOrientation : true
+    });
+
+    //populates a specific id div with video stream data from the specified topic
+    var mjpegViewer = new MJPEGCANVAS.Viewer({
+      divID : 'mjpeg',
+      host : piIP,
+      width : 640,
+      height : 480,
+      topic : '/camera/image_raw'
+    });
+    
+  }
+    //values to hold the robots current X and Y and Z axis Rotational position as a quaternion value
+    var x, y, zr;
+
+    //THIS STARTS THE POSITION LISTENER
+    var listener = new ROSLIB.Topic({
+      ros : ros,
+      name : '/amcl_pose',
+      messageType : 'geometry_msgs/PoseWithCovarianceStamped'
+    });
+    
+    //This code is to receive linabot position data from the Ros topic
+    listener.subscribe(function(message) {
+      //element holding position data
+      var a = document.getElementById('log');
+
+      //setting our variables to be updated to current position
+      x = message.pose.pose.position.x;
+      y = message.pose.pose.position.y;
+      zr = message.pose.pose.orientation.z;
+
+      //update the element with the new position data
+      a.textContent = new Date() + ' : Received message on ' + listener.name + ': ' + x + ", " + y + ", " + zr;
+    });
+
+    //this topic is for the status of the goal
+    var goal = new ROSLIB.Topic({
+      ros : ros,
+      name : '/move_base/result',
+      messageType : 'move_base_msgs/MoveBaseResult'
+    });
+
+    //this allows the robot to communicate with the PLCs
+    var roboComm = new ROSLIB.Topic({
+      ros : ros,
+      name : '/robocom',
+      messageType : 'ros_socket/robocom'
+    });
+
+    //starting the listener
+    goal.subscribe(function(message) {
+
+      //THIS DISPLAYS TEXT OF GOAL
+      result = message.status.text;
+      resNum = message.status.status;
+      if (resNum == 3 && roboIP != -1){
+        var string = new ROSLIB.Message({
+            robot_status : resNum,
+            client_ip : roboIP
+          });
+          roboComm.publish(string);
+      }
+      alert(result);
+    });
+    //THIS STARTS THE GOAL PUBLISHER
+    var talker = new ROSLIB.Topic({
+      ros : ros,
+      name : '/move_base_simple/goal',
+      messageType : 'geometry_msgs/PoseStamped'
+    });
+    
+    //THIS handles the click function of the waypoint button
+    $(document).ready(function () {
+      //I think this is only attaching to values instantiated under the del class at this moment
+      $("#saveWaypoint").click(function() {
+
+        var title = prompt("What would you like to name this waypoint?");
+
+        while(title == ""){  
+	  title = prompt("Enter a Waypoint title.");
+	}
+        if(title != null && title != ""){
+          $.ajax({
+            url: '/setWaypoint',
+            data: {
+              title : title,
+              pos : x + "\n" + y + "\n" + zr + "\n"
+            },
+            type: 'POST',
+            success: function(response) {
+              if(response.error){
+                alert(response.error);
+              } else if (response.title == title) {
+                
+                makeOption([title]);
+                waypoints.push(title);
+                ip.push("-1");
+                pos.push(x);
+                pos.push(y);
+                pos.push(zr);
+
+                alert("Waypoint Created!");
+                
+              } else{
+                alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+              }
+
+            },
+            error: function(error) {
+              if(error){
+                  alert(error);
+              } else {
+                  alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+              }
+            }
+          });
+        }   
+     
+        $(this).button('reset');
+      });
+
+
+      $("#setRoutine").click(function() { 
+        alert("Select the waypoints in the order you would like the routine to proceed");
+        //set a new override on click function to waypoint buttons
+        //toggle to remove override
+        if (routing == false){
+          routing = true;
+        }else{
+          routing = false;
+        }
+
+        $(this).button('reset');
+      });
+    });
+
+    function makeOption(waypoints){
+      
+      var first = document.getElementById("content");
+      for (i in waypoints){
+        var option = document.createElement("a");
+        option.id = index;
+        option.classList.add('go');
+        var del = document.createElement("BUTTON");
+        del.classList.add('del');
+        var addIP = document.createElement("BUTTON");
+        addIP.classList.add('ip');
+        var addIPText = document.createTextNode("+");
+        var delText = document.createTextNode("x");
+        var optText = document.createTextNode(waypoints[i]);
+        option.appendChild(optText);
+        del.appendChild(delText);
+        addIP.appendChild(addIPText);
+        option.appendChild(del);  
+        option.appendChild(addIP);   
+        first.appendChild(option);
+        console.log(index);
+        index++;
+      }
+      $(".del").off("click");
+      $(".del").click(function() {
+          
+          p = this.parentElement; 
+          x = p.id;
+          console.log(x);
+          //put in confirmation to delete
+          
+          $.ajax({
+            url: '/delWaypoint',
+            data: {
+              rem : x
+            },
+            type: 'POST',
+            success: function(response) {
+              if(response.error){
+                alert(response.error);
+              } else if (response.rem == "HI"/*p.value*/) {//returns deleted element title for ensuring no error ocurred
+                console.log(x);
+                for(i = (parseInt(x) + 1); i < index; i++){
+                  console.log(i);
+                  console.log(waypoints[i]);
+                  document.getElementById(i).id = parseInt(i)-1;
+                }                
+                $(p).slideUp(function() { $(p).remove(); });
+                waypoints.splice(x, 1);
+                pos.splice(x*3, 3);
+                index--;
+              } else{
+                alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+              }
+
+            },
+            error: function(error) {
+              if(error){
+                  alert(error);
+              } else {
+                  alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+              }
+            }
+          });
+        $(this).button('reset');     
+      });
+      $(".go").off("click");
+      $(".go").click(function() {
+        
+        if(routing == false){
+          x = parseInt(this.id);
+          console.log(pos[x*3] +" fish "+ pos[x*3+1]);
+          var string = new ROSLIB.Message({
+            header: {
+              stamp: 'now', 
+              frame_id: "map"
+            }, 
+            pose: {
+              position: {
+                x: pos[x*3], 
+                y: pos[x*3+1], 
+                z: 0.0
+              }, 
+              orientation: {
+                w: pos[x*3+2]
+              }
+            }
+          });
+          talker.publish(string);
+          
+          roboIP = ip[x];
+          
+        } else {
+
+        }
+          $(this).button('reset');     
+      });
+      $(".ip").off("click");
+      $(".ip").click(function() {
+        if(routing == false){
+          p = this.parentElement; 
+          x = p.id;
+          var inp = prompt("Enter the IP for this waypoint.(Leave blank to clear)", ip[x]);
+          if(inp != null){
+            if ((inp == "" || inp =="-1") && ip[x] != "-1") {
+              ip[x] = "-1";
+            } else {
+              if(inp == ""){
+                inp = "-1"
+              }
+              $.ajax({
+                url: '/setIP',
+                data: {
+                  ind : x,
+                  ip : inp
+                },
+                type: 'POST',
+                success: function(response) {
+                  if(response.error){
+                    alert(response.error);
+                  } else if (response.ip == inp) {
+                    ip[x] = inp;
+                    alert("IP Updated!");
+                  } else{
+                    alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+                  }
+                },
+                error: function(error) {
+                  if(error){
+                      alert(error);
+                  } else {
+                      alert("UNEXPECTED ERROR OCCURED. PLEASE CONTACT SERVER MANAGER.");
+                  }
+                }
+              });
+            }
+          }
+        }
+          $(this).button('reset');     
+      });
+    }    
+    
+</script>
+  
+<style>
+  body {
+    background-color: black;
+  }
+  .dropbtn {
+    background-color: gray;
+    color: orange;
+    font-weight: bold;
+    padding: 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .dropdown {
+    padding: 0px;
+    position: relative;
+    display: inline-block;
+  }
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: gray;
+    min-width: 140px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    border: none;
+    border-radius: 10px;
+  }
+
+  .dropdown-content a {
+    color: black;
+    background-color: gray;
+    text-align: center;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    border: none;
+    border-radius: 10px;
+  }
+  .selected {
+    background-color: green;
+  }
+  .dropdown-content a button{
+    background-color: gray;
+    color: orange;
+    font-weight: bold;
+    padding: 0px 6px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    float: right;
+  }
+
+  .dropdown-content a:hover {
+    background-color: #f1f1f1;
+    cursor: pointer;
+  }
+  .dropdown-content a:hover button {
+    background-color: #f1f1f1;
+  }
+
+  .dropdown:hover .dropdown-content {
+    display: block;
+  }
+
+
+  button:hover {
+    background-color: #f1f1f1;
+  }
+  .dropdown-content a button:hover {
+    background-color: gray;
+  }
+  #log {
+    color: white;
+  }
+</style>
+</head>
+
+
+<!-- this loads the -->
+<body onload="init()">
+  <div style="width: 1400px; height: 480px;">
+    <div style="display: inline-block;" id="nav"></div>  
+    <div style="display: inline-block;" id="mjpeg"></div>
+  </div>
+
+  <div id="log"></div>
+  
+  <div id="dropdown" class="dropdown">
+    <button class="dropbtn">Waypoints</button>
+    <div id="content" class="dropdown-content">
+    </div>
+  </div>
+
+  <button class="dropbtn" type="button" id="saveWaypoint">Set Waypoint</button>
+
+  <button class="dropbtn" type="button" id="SetRoutine">Set Routine</button>
+
+  <script>    
+  </script>
+</body>
+</html>

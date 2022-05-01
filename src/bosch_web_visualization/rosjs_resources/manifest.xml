@@ -1,0 +1,11 @@
+<package>
+  <description brief="rosjs_resources">
+    rosjs resources 
+  </description>
+  <author>Sarah Osentoski and Bener Suay</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosjs_resourcees</url>
+</package>
+
+

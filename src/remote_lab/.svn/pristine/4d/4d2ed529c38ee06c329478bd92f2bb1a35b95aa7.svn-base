@@ -1,0 +1,25 @@
+<launch>
+  <machine name="arwen_elec" address="arwen" ros-root="/opt/ros/electric/ros" ros-package-path="~/ros:/opt/ros/electric/stacks" />
+
+  <node pkg="keyboard_6_dof_teleop" type="joint_state_listener.py" name="joint_state_listener"/>
+
+  <!--include file="$(find success_server)/success_server.launch"/-->
+  <!-- rosbridge -->
+  <!-- Mjpeg server -->
+  <include file="$(find wviz)/launch/mjpeg_server_remote.launch" />
+  <!-- remote Lab cam -->
+  <include file="$(find wviz)/launch/remote_lab_cameras.launch" />
+
+  <!--node pkg="robot_booking" name="robot_booking" type="bookkeeping.py" respawn="false" output="screen" machine="arwen_elec" /-->
+  <!-- wviz tf manager -->
+  <include file="$(find wviz)/launch/wviz_tf_manager_remote.launch" />
+  <node pkg="interactive_marker_client" name="interactive_marker_client" type="interactive_marker_client.py" machine="arwen_elec" />
+
+  <!--include file="$(find cluster_grasping)/cluster_grasping_server_remote.launch" /-->
+
+  <include file="$(find pr2_gripper_sensor_action)/launch/pr2_gripper_sensor_actions.launch" />
+
+  <include file="$(find constrained_teleop)/jtteleop.launch"/>
+
+</launch>
+

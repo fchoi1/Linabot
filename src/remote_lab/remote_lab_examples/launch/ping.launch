@@ -1,0 +1,3 @@
+<launch>
+  <node name="ping_server" pkg="ping" type="ping_server" respawn="true"/>
+</launch>

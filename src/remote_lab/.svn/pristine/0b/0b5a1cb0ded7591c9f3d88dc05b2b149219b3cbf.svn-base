@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 0 0 0 0 0 remote_lab odom_combined 5" />
+  <node pkg="tf" type="static_transform_publisher" name="link2_broadcaster" args="0 0 0 0 0 0 remote_lab walls 5" />
+  <node pkg="tf" type="static_transform_publisher" name="link3_broadcaster" args="0 0 0 0 0 0 remote_lab frame_structure 5" />
+  <node pkg="tf" type="static_transform_publisher" name="link4_broadcaster" args="0 1 0 0 0 0 remote_lab vika_amon_table 5" />
+</launch>

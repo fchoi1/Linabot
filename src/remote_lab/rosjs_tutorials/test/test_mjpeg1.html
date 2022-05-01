@@ -1,0 +1,48 @@
+
+ 
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Video Test</title> 
+ 
+<!-- REQUIRED scripts for layout widget --> 
+<script type="text/javascript" src="../../wviz/js/jquery/jquery-latest.js"></script> 
+ 
+<!-- REQUIRED scripts for ROS --> 
+<script type="text/javascript" src="../../wviz/js/ros/ros.js"></script> 
+<script type="text/javascript" src="../../wviz/js/ros/common.js"></script> 
+<script type="text/javascript" src="../../wviz/js/ros/remotelabwidgets/remotelabwidgets.js"></script> 
+ 
+ 
+<script > 
+ 
+function start()
+{
+ 
+    url="http://rtc.pr2-remotelab.com:8080/?topic=/wide_stereo/right/image_rect_color";
+    var video0 = new ros.widgets.MJPEGWidget("image_display1", 640, 480, url);
+    
+    function nop() {};
+    function json(obj) {return JSON.stringify(obj);};
+    
+    function log(msg) {
+	$('#log').append(msg.toString() + '<br>');
+    };
+  
+}
+ 
+</script> 
+<style type="text/css"> 
+    canvas {
+        border: 2px solid black;
+    }
+</style> 
+</head> 
+ 
+<body onload="start()"> 
+<div id="image_display1"></div> 
+ 
+</body> 
+ 
+</html> 

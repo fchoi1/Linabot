@@ -1,0 +1,24 @@
+<package>
+  <description brief="pr2_pick_and_place_service">
+	Provides much of the functionality of the pick_and_place_demo through a set of services.
+
+  </description>
+  <author>Sarah Osentoski</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pr2_pick_and_place_service</url>
+  <depend package="rospy"/>
+  <depend package="roscpp"/>
+  <depend package="actionlib"/>
+  <depend package="geometry_msgs"/>
+  <depend package="std_msgs"/>
+  <depend package="trajectory_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="tf"/>
+  <depend package="actionlib_msgs"/>
+  <depend package="pr2_pick_and_place_demos"/>
+  <depend package="object_manipulator"/>
+  <depend package="pr2_tabletop_manipulation_launch"/>
+</package>
+
+

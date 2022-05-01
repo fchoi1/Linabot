@@ -1,0 +1,13 @@
+<package>
+  <catkin/>
+  <description brief="map_compressor">A helper node that subscribes to /map topic, compresses and publishes from /compressed_map topic.</description>
+  <author>Bener Suay</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/map_compressor</url>
+  <depend package="roscpp"/>
+  <depend package="nav_msgs"/>
+  <depend package="std_msgs"/>
+</package>
+
+

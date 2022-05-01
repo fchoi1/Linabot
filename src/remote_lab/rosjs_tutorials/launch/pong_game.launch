@@ -1,0 +1,9 @@
+<launch>
+  <param name="/use_sim_time" value="false" />
+  <include file="$(find wviz)/launch/rosbridge.launch"/>
+  <include file="$(find wviz)/launch/tf_throttle.launch"/>
+  <node pkg="interactive_marker_tutorials" type="pong" name="pong" />
+  <node pkg="interactive_marker_client" type="interactive_marker_client.py" name="interactiver_marker_client" output="screen"/>
+  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 1 0 0 0 0 world base_link 100" />
+  <node pkg="tf" type="static_transform_publisher" name="link2_broadcaster" args="1 0 0 0 0 0 world map 100" />
+</launch>

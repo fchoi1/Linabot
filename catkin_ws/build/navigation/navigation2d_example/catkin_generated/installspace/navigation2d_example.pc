@@ -1,0 +1,8 @@
+prefix=/home/shilpan/catkin_ws/install
+
+Name: navigation2d_example
+Description: Description of navigation2d_example
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/shilpan/catkin_ws/install/lib 
+Requires: 

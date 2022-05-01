@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/ubuntu/workspace/src/bosch_web_visualization/wviz_tf_manager/build/devel/setup.sh

@@ -1,0 +1,75 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+<title>Test Calibrated Camera</title> 
+
+<!-- REQUIRED scripts for ROS -->
+<script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+<script type="text/javascript" src="js/spidergl/spidergl.js"></script>
+<script type="text/javascript" src="js/ros/ros.js"></script>
+<script type="text/javascript" src="js/ros/common.js"></script>
+<script type="text/javascript" src="js/ros/visualization/visualization.js"></script>
+
+<script> 
+
+// create a visualization manager
+var vm = new ros.visualization.VisualizationManager("WEBGL_CANVAS");
+
+function start()
+{ 
+  // create a rosjs node handle
+  var node = new ros.NodeHandle("ws://localhost:9090");
+
+  // set handler for onClose event
+  node.setOnClose(function(e) {
+    ros_debug("Disconnected or Can't Connect.");
+  });
+
+  // set handler for onError event
+  node.setOnError(function(e) {
+    ros_debug("Unknown error!");
+  });
+  
+  //set handler for onOpen event 
+  node.setOnOpen(function(e) {
+    // successfully connected to rosjs     
+    ros_debug("Connected to " + node.url + ".");
+    // create a transform listener that subscribes to /tf messages
+    var tf = new ros.tf.TransformListener(node, "/tf"); 
+    // initialize visualization manager
+    vm.initialize(node, tf);
+    // add visualization nodes here...
+    //vm.addGrid("/odom_combined",10.0, 1.0);    
+    vm.addRobotModel("resources/pr2_description/pr2_urdf.xml");
+    //vm.addCoordinateFrame( "/narrow_stereo_optical_frame");
+    
+    // set fixed frame to narrow stereo
+    vm.scene_viewer.fixed_frame = "/narrow_stereo_optical_frame";
+    // set camera to calibrated camera
+    var camera = new ros.visualization.CalibratedCamera(); 
+    var interactor = new ros.visualization.OrbitInteractor(camera);
+    vm.scene_viewer.camera = camera;
+    vm.scene_viewer.interactor = interactor;
+    // subscribe to camera info messages
+    var that = this;
+    node.subscribe("/narrow_stereo/left/camera_info", function(msg){
+      camera.update(msg);
+      vm.scene_viewer.ui.requestDraw();
+    });
+  });
+  
+  window.onresize = function() {
+    var c = document.getElementById('WEBGL_CANVAS');
+    c.width  = window.innerWidth;
+    c.height = window.innerHeight;
+  }
+  window.onresize(); 
+}
+</script> 
+
+</head> 
+<body onload="start()" style="margin:0;padding:0;background-white;overflow:hidden"> 
+<canvas id="WEBGL_CANVAS" width="1000" height="600"></canvas> 
+</body> 
+</html> 

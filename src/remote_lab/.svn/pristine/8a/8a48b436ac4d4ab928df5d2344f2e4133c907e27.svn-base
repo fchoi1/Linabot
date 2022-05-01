@@ -1,0 +1,30 @@
+<launch>
+  <include file="$(find wviz)/launch/machines.launch" />
+  
+	<node name="remote_lab_cam0" pkg="usb_cam" type="usb_cam_node" machine="camera_server">
+		<param name="video_device" value="/dev/video0"/>
+	</node>
+
+  <!--node name="remote_lab_cam1_pantilt" pkg="logitech_pantilt" type="logitech_pantilt" machine="camera_server"-->
+		<!--param name="device" value="/dev/video1"/-->
+		<!--param name="topicPath" value="remote_lab_cam1"/-->		
+	<!--/node -->
+	
+	<node name="remote_lab_cam1" pkg="usb_cam" type="usb_cam_node" machine="camera_server">
+		<param name="video_device" value="/dev/video1"/>
+	</node>
+
+  <!--node name="remote_lab_cam2_pantilt" pkg="logitech_pantilt" type="logitech_pantilt" machine="camera_server"-->
+		<!--param name="device" value="/dev/video2"/-->
+		<!--param name="topicPath" value="remote_lab_cam2"/-->		
+	<!--/node-->
+	
+	<node name="remote_lab_cam2" pkg="usb_cam" type="usb_cam_node" machine="camera_server">
+		<param name="video_device" value="/dev/video2"/>
+	</node>
+
+  <node name="remote_lab_cam3" pkg="usb_cam" type="usb_cam_node" machine="camera_server">
+    <param name="video_device" value="/dev/video3"/>
+  </node>
+  
+</launch>

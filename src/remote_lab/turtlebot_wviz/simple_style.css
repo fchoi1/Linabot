@@ -1,0 +1,145 @@
+b {
+  color: #444;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:link {
+	color: #05b;
+}
+
+a:visited {
+	color: #05b;
+}
+
+a:active {
+	color: #999;
+}
+
+a:hover {
+	color: #999;
+}
+
+body {
+	background-color:#666666;
+}
+
+h3 {
+	font-family: 'Optima', 'Bitstream Vera Sans', sans-serif;
+	color: black;
+	padding-left: 5px;
+	padding-bottom: 2px;
+	padding-top: 2px;
+	background-color: #d6d6d9;
+        margin-top: 30px;
+	font-size: 14px;
+}
+
+
+#content {
+	padding-bottom: 13px;
+	padding-left: 10px;
+	padding-right: 10px;
+	font-family: 'Optima', 'Bitstream Vera Sans', sans-serif;
+	font-size: 12px;
+	font-weight: normal;
+	text-align: justify;
+	top: 100px; 
+	z-index: 100;
+}
+
+#rap{
+    max-width:1000px;
+    margin: auto;
+    background-color: white;
+
+}
+#header {
+	background-color:white;
+	font-family: 'Optima', Verdana, 'Bitstream Vera Sans', sans-serif;
+	font-size: 28px;
+	font-weight: bold; 
+	padding: 10px 10px 10px 10px;
+	color: black;
+	text-align: left;
+}
+
+
+#display{
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#break {
+	font-family: 'Optima', Verdana, 'Bitstream Vera Sans', sans-serif;
+	background-color: #003366;
+	font-size: 28px;
+	font-weight: bold; 
+	padding: 10px 10px 10px 10px;
+	color: black;
+	text-align: right;
+	
+}
+
+div {
+    text-align: left;
+}
+div.menu {
+	position: relative;
+	float: right;
+	height: 2em;
+	padding-right: 10px;
+
+}
+
+
+
+div.buttonUp {
+position: relative;
+height: 1.5em;
+float: right;
+padding: 0px 15px 0px 5px;
+	background-color:  #d6d6d9;
+		font-family: 'Optima', 'Bitstream Vera Sans', sans-serif;
+	color: black;
+	font-size: 14px;
+	font-weight: bold;
+	
+
+}
+
+
+span.left {
+position: relative;
+float: left; 
+}
+
+span.left a:link{
+color:#808080;
+text-decoration: none;
+}
+
+span.right {
+position: relative;
+float: right; 
+}
+
+
+
+div.post {
+	position:relative;
+}
+
+div.hello {
+	margin-top: 22px;
+	width: 32em;
+	font-size: 12px;
+	color: black;
+	font-weight: normal;
+	float: right;
+	text-align: justify;
+	
+}

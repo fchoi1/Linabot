@@ -1,0 +1,16 @@
+<package>
+  <description brief="wviz">
+    Web visualization tool based on  webgl and websockets.
+  </description>
+  <author>Benjamin Pitzer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/wviz</url>
+  <depend package="rosjs_common"/>
+  <depend package="rosjs_resources"/>
+  <depend package="rosjs_visualization"/>
+  <depend package="visualization_msgs"/>
+  <depend package="mjpeg_server"/>
+</package>
+
+

@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="language" content="en" />
+  <title> Web Robot Controller</title>
+  <link rel="stylesheet" type="text/css" href="css/layout-default-latest.css" />
+  <link rel="stylesheet" type="text/css" href="css/themes/base/jquery.ui.all.css" />
+  <!-- CUSTOMIZE/OVERRIDE THE DEFAULT CSS -->
+  <link rel="stylesheet" type="text/css" href="css/remote_lab.css" />
+  <link rel="stylesheet" type="text/css" href="css/rightcontext.css" />
+
+  <!-- REQUIRED scripts for layout widget -->
+  <script type="text/javascript" src="js/jquery/jquery-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/jquery-ui-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/jquery.layout-latest.js"></script>
+  <script type="text/javascript" src="js/jquery/debug.js"></script>
+	<script type="text/javascript" src="js/spidergl/spidergl.js"></script>
+
+	<!-- REQUIRED scripts for ROS -->
+	<script type="text/javascript" src="js/ros/ros.js"></script>
+	<script type="text/javascript" src="js/ros/common.js"></script>
+  <script type="text/javascript" src="js/ros/remotelabwidgets/remotelabwidgets.js"></script>
+	<script type="text/javascript" src="js/util.js"></script>
+
+  <script type="text/javascript">
+  // rosjs variables
+ var rosjs_server = "rosjs.pr2-remotelab.com";
+ var mjpeg_server = "mjpeg.pr2-remotelab.com";
+// var rosjs_server = "arwen";
+// var mjpeg_server = "merry";
+
+  var rosNode;
+
+  // widget variables
+  var widgetmanager;
+  
+  // layout variables
+  var outerLayout;
+  var southLayout;
+
+  // robot model
+  var robot_model;
+
+  var links = ["wviz_1.html","wviz_2.html","wviz_3.html","wviz_4.html"];
+  var instruction = ["inst_1.html","inst_2.html","inst_3.html","inst_4.html"];
+  var object_list = ["obj_1.html","obj_2.html","obj_3.html","obj_4.html"];
+
+  function log(msg) {
+    jQuery('#log').append(msg.toString() + '<br/>');
+    $('#log').attr({ scrollTop: $('#log').attr('scrollHeight')});
+  }
+
+  function init()
+  {
+    ready();
+    log('Accessing Robot...');
+    rosNode = new ros.NodeHandle("ws://" + rosjs_server + ":9090");
+
+    rosNode.setOnClose(function(e) {
+        log("Disconnected or Can't Connect.");
+        });
+
+    rosNode.setOnError(function(e) {
+        log("Unknown error!");
+        });
+
+    rosNode.setOnOpen(function(e) {
+        log("Connected to " + rosNode.url + ".");
+        log('Checking robot status...');
+        checkRobot(rosNode,getStatus);
+        });
+  }
+
+  function getStatus(msg)
+  {
+    if(msg.ret == true)
+    { 
+      var btn = document.getElementById("btn");
+      btn.disabled = false;
+      log('Robot Ready!');
+    }else {
+      log('Sorry :( robot is in use');
+    }
+  }
+
+  function buttonClick()
+  {
+    var out = Math.floor(Math.random() * (links.length));
+  //  var out=1;
+    var object_idx = Math.floor(Math.random() * (object_list.length));
+//    window.location.href = links[0];
+//    window.open(instruction[0],"_black","toolbar=no,menubar=0,status=0,scrollbar=yes,resizeable=1,location=0, Width=400,Height=700");
+
+
+//publishing 5 times so rosbridge will get it
+   rosNode.publish('/experiment_info', 'robot_booking/ExperimentInfo', ros.json({'object_id': object_idx, 'experiment_mode': out}));
+   rosNode.publish('/experiment_info', 'robot_booking/ExperimentInfo', ros.json({'object_id': object_idx, 'experiment_mode': out}));
+   rosNode.publish('/experiment_info', 'robot_booking/ExperimentInfo', ros.json({'object_id': object_idx, 'experiment_mode': out}));
+   rosNode.publish('/experiment_info', 'robot_booking/ExperimentInfo', ros.json({'object_id': object_idx, 'experiment_mode': out}));
+   rosNode.publish('/experiment_info', 'robot_booking/ExperimentInfo', ros.json({'object_id': object_idx, 'experiment_mode': out}));
+
+
+    new_window1=  window.open(instruction[out],"instr_win","toolbar=no,menubar=0,status=0,scrollbar=yes,resizeable=1,location=0, Width=900,Height=900");
+  console.log("Popping up window over");
+
+   new_window2= window.open(object_list[object_idx],"object_win","toolbar=no,menubar=0,status=0,scrollbar=yes,resizeable=1,location=0, Width=900,Height=700");
+  log("Popping up window over2");  
+    window.location.href = links[out];
+
+
+  }
+
+  function resizeWidgets() {
+    // do nothing for now
+  }
+
+  function resizeCanvas() {
+    var state = outerLayout.state;
+    var camera = document.getElementById('CAMERA_IMAGE');
+    
+    camera.width = state.center.innerWidth - 100;
+    camera.height = state.center.innerHeight - 100;
+
+    camera.src = "http://"+mjpeg_server+":8080/stream?topic=/remote_lab_cam2/image_raw?quality=10?width="+camera.width+"?height="+camera.height;
+  }
+
+
+  /*
+   *################
+      On Page Load
+    ################
+   */
+
+  function ready() {
+    jQuery("#right_nav").tabs();
+
+    // create the outer layout
+    outerLayout = jQuery('body').layout({
+      north__size: 85
+    , east__size : 600
+    , south__size: 100
+    , center__onresize_end: function () { resizeCanvas(); }
+      });
+
+    setTimeout(resizeWidgets, 1000);
+
+    jQuery("a").each(function() {
+      var path = document.location.href;
+      if (path.substr(path.length-1)=="#") path = path.substr(0,path.length-1);
+      if (this.href.substr(this.href.length-1) == "#") this.href = path +"#";
+    });
+
+    resizeCanvas();
+  }
+
+  </script>
+
+</head>
+<body onload="init()">
+<style>
+  #feedback { font-size: 1.2em; }
+    #selectable .ui-selecting { background: #f39814; color: white;  }
+  #selectable .ui-selected { background: #f39814; color: white; }
+  #selectable { list-style-type: none; margin: 3px; padding: 0; width: 60%; }
+  #selectable li { margin: 3px; padding: 0.4em; font-size: 1.2em; height: 18px; }
+
+</style>
+
+<!-- Header -->
+<div class="ui-layout-north ui-widget-content" style="display:none;">
+  <div id="navigation" class="ui-tabs uiwidget ui-widget-content ui-corner-all">
+    <ul id="right_nav" class="ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all">
+      <li><img src="img/remote_lab_header_small.jpg" height="50"/> </li>
+    </ul>
+  </div>
+</div>
+
+<!-- Body -->
+<div class="ui-layout-center" style="display: none;">
+  <img id="CAMERA_IMAGE" src="http://"+mjpeg_server+":8080/stream?topic=/remote_lab_cam0/image_raw?quality=10?width=600?height=450" alt="" />
+  <center>
+    <input id="btn" type="button" value="Click me" disabled=true onclick="buttonClick()"/>
+  </center>
+</div>
+
+<div class="ui-layout-east" style="display: none;">
+  <div class="ui-layout-header">
+    
+  </div>
+  <div class="ui-layout-content ui-widget-content">
+    <iframe height=100% width=100% src="https://docs.google.com/document/pub?id=1y_1hxkRtoYQMnXp21Hd6IfenSNaM7fpPPua4VBzWXY4&amp;embedded=true"></iframe>
+  </div>
+</div>
+
+<div class="ui-layout-south" style="display: none;">
+  <div id="log"> </div>
+</div>
+</body>
+</html>
+
+

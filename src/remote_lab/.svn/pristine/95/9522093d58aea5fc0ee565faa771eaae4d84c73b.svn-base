@@ -1,0 +1,12 @@
+<package>
+  <description brief="rosjs_widgets">
+    rosjs common.
+  </description>
+  <author>Benjamin Pitzer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosjs_widgets</url>
+  <depend package="rosjs_common"/>
+</package>
+
+
